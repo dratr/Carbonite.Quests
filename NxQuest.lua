@@ -9168,6 +9168,7 @@ function Nx.Quest.Watch:UpdateList()
 				end
 				local tasks = {}
 				if Nx.qdb.profile.QuestWatch.BonusTask then
+					if false then
 					local taskInfo = C_TaskQuest.GetQuestsForPlayerByMapID(map.UpdateMapID);
 					if taskInfo then
 						for i=1,#taskInfo do
@@ -9187,7 +9188,7 @@ function Nx.Quest.Watch:UpdateList()
 								--Nx.prt("====%s: %s, %s", title, x, y)
 								if numObjectives and numObjectives > 0 then
 									for j=1,numObjectives do
-										local text, objectiveType, finished = GetQuestObjectiveInfo (questId, j, false)
+										local text, objectiveType, finished = GetQuestObjectiveInfo (taskInfo[i].questId, j, false)
 										if objectiveType == "progressbar" then
 											list:ItemAdd(0)
 											list:ItemSetOffset (16, -1)
@@ -9217,6 +9218,7 @@ function Nx.Quest.Watch:UpdateList()
 							end
 						end
 					end
+					else
 					local taskInfo = GetNumQuestLogEntries()
 					if taskInfo > 0 then
 						for i=1,taskInfo do
@@ -9258,6 +9260,7 @@ function Nx.Quest.Watch:UpdateList()
 								list:ItemSet(2,"|cffff00ff-------------------------------")
 							end
 						end
+					end
 					end
 				end
 				if Nx.qdb.profile.QuestWatch.AchTrack then
