@@ -2819,41 +2819,24 @@ function Nx.Quest:Init()
 		["Bloodberry Bush"] = "Bloodberries",
 		["Erratic Sentry"] = "Erratic Sentries",
 	}
-
-	--hooksecurefunc ("ShowUIPanel", CarboniteQuest.ShowUIPanel)
-	--hooksecurefunc ("HideUIPanel", CarboniteQuest.HideUIPanel)
-	--[[hooksecurefunc ("ToggleQuestLog", function(...)
-		Nx.Map.WMFOnShow = false
+	
+	self.QInit = true
+	hooksecurefunc ("ToggleQuestLog", function(...)
 		local orig = IsAltKeyDown() and not self.IgnoreAlt
 		if Nx.qdb.profile.Quest.UseAltLKey then
 			orig = not orig
 		end
 		if not orig then
-			
-		end
-		Nx.Map.WMFOnShow = truel
-	end)]]--
-	Nx.Quest.OldToggleQuestLog = ToggleQuestLog
-	function ToggleQuestLog(...)
-		Nx.Map.WMFOnShow = false
-		local orig = IsAltKeyDown() and not self.IgnoreAlt
-		if Nx.qdb.profile.Quest.UseAltLKey then
-			orig = not orig
-		end
-		if orig then
-			WorldMapFrame:SetQuestLogPanelShown(true)
-			Nx.Quest:OldToggleQuestLog()
-		else
-			if self.InShowUIPanel then
-				Nx.Quest:HideUIPanel(QuestMapFrame)
-				self.InShowUIPanel = false
+			HideUIPanel(WorldMapFrame)
+			if self.IsOpen then
+				Nx.Quest:HideUIPanel ()
 			else
-				Nx.Quest:ShowUIPanel(QuestMapFrame)
-				self.InShowUIPanel = true
+				Nx.Quest:ShowUIPanel ()
 			end
-		end	
-		Nx.Map.WMFOnShow = true
-	end
+		else
+			Nx.Quest.OldWindow()
+		end
+	end)
 	--[[Nx.Quest.OldWindow = ToggleQuestLog
 	function ToggleQuestLog(...)
 		local orig = IsAltKeyDown() and not self.IgnoreAlt
@@ -2916,27 +2899,12 @@ function QuestMapFrame_Hide()
 	oQuestMapFrame_Hide()
 end]]--
 
-function CarboniteQuest.ShowUIPanel(frame)
-	if frame then
-		if frame == _G["QuestMapFrame"] and Nx.qdb.profile.Quest.Enable then
-			Nx.Quest:ShowUIPanel (frame)
-		end
-	end
-end
-
-function CarboniteQuest.HideUIPanel (frame)
-	if frame then
-		if frame == _G["QuestMapFrame"] and Nx.qdb.profile.Quest.Enable then
-			Nx.Quest:HideUIPanel (frame)
-		end
-	end
-end
-
 function Nx.Quest:ProcessQuestDB(questTotal)
 	if InCombatLockdown() then
 		C_Timer.After(5, function() Nx.Quest:ProcessQuestDB(questTotal) end)
 		return
 	end
+	local Map = Nx.Map
 	local maxLoadLevel = Nx.qdb.profile.Quest.maxLoadLevel
 	local enFact = Nx.PlFactionNum == 1 and 1 or 2
 	local qLoadLevel = max(1, UnitLevel ("player") - Nx.qdb.profile.Quest.LevelsToLoad)
@@ -5487,19 +5455,19 @@ function Nx.Quest.List:Open()
 
 	-- Create window
 
-	local win = Nx.Window:Create ("NxQuestList")
+	local win = Nx.Window:Create ("NxQuestList", nil, nil, true)
 	self.Win = win
 
 	win:CreateButtons (true, true)
 	win:InitLayoutData (nil, -.24, -.15, -.52, -.65)
 
-	tinsert (UISpecialFrames, "QuestMapFrame")
 	tinsert (UISpecialFrames, win.Frm:GetName())
 
 	win.Frm:SetToplevel (true)
 	win.Frm:SetMinResize (250, 120)
 
 	win:SetUser (self, self.OnWin)
+	win:RegisterHide ()
 	CarboniteQuest:RegisterEvent ("PLAYER_LOGIN", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("UPDATE_FACTION", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("GARRISON_MISSION_COMPLETE_RESPONSE", "OnQuestUpdate")
@@ -5840,72 +5808,58 @@ end
 
 -------------------------------------------------------------------------------
 
-function Nx.Quest:ShowUIPanel (frame)
-	if self.InShowUIPanel then
+function Nx.Quest:ShowMap ()
+	self.IsOrigOpen = true
+end
+
+function Nx.Quest:HideMap ()
+	self.IsOrigOpen = false
+end
+
+function Nx.Quest:ShowUIPanel ()
+	if self.InShowUIPanel or self.IsOpen then
 		return
 	end
 	self.InShowUIPanel = true
-	local detailFrm = QuestLogDetailFrame
-	local orig = IsAltKeyDown() and not self.IgnoreAlt
 	local opts = self.GOpts
-	if Nx.qdb.profile.Quest.UseAltLKey then
-		orig = not orig
-	end
-	if orig then	-- Show original quest log?
-		self.IsOrigOpen = true
-		--frame:SetScale (1)
-		--QuestMapFrame:SetAttribute ("UIPanelLayout-enabled", true)
-		--ShowUIPanel (WorldMapFrame)
-		--if detailFrm then
-			--detailFrm:SetScale (1)
-		--end
-		self:LightHeadedAttach (frame)
-	else
-		Nx.Quest.List:Refresh()
-		self.IsOpen = true
-		local win = self.List.Win
-		if win and not GameMenuFrame:IsShown() then
-			self:ExpandQuests()
-			local wf	= win.Frm
-			win:Show()
-			self.List:Update()
-			wf:Raise()
-			--frame:Show()
-			--if detailFrm then
-				--detailFrm:SetScale (.1)
-			--end
-			self:LightHeadedAttach (wf, true)
-		end
+	self.IsOpen = true
+	local win = self.List.Win
+
+	if win and not GameMenuFrame:IsShown() then
+
+		self:ExpandQuests()
+
+		local wf	= win.Frm
+
+--		Nx.prt ("LevS1 "..wf:GetFrameLevel().." "..ff:GetFrameLevel())
+
+		win:Show()
+		self.List:Update()
+		wf:Raise()
+
+--		Nx.prt ("LevS2 "..wf:GetFrameLevel().." "..ff:GetFrameLevel())
+
+--		Nx.prt ("LevS3 "..wf:GetFrameLevel().." "..ff:GetFrameLevel())
+
+		self:LightHeadedAttach (wf, true)
 	end
 	self.InShowUIPanel = false
 end
 
 -------------------------------------------------------------------------------
 
-function Nx.Quest:HideUIPanel (frame)
-	local orig = IsAltKeyDown() and not self.IgnoreAlt
-	if Nx.qdb.profile.Quest.UseAltLKey then
-		orig = not orig
+function Nx.Quest:HideUIPanel ()
+	self.IsOpen = false		
+
+	self.List.Win:Show (false)
+
+	if self.List.List:ItemGetNum() > 0 then
+		self.List.List:Empty()
 	end
-	if orig then
-		--QuestMapFrame:SetAttribute ("UIPanelLayout-enabled", true)
-		--HideUIPanel(WorldMapFrame)
-		--Nx.Quest.OldWindow()
-		--Nx.Quest.OldWindow()
-		self.IsOrigOpen = false
-	else
-		self.IsOpen = false
-		local detailFrm = QuestLogDetailFrame
-		--if detailFrm then
-			--detailFrm:SetScale (1)
-		--end
-		self.List.Win:Show (false)
-		if self.List.List:ItemGetNum() > 0 then
-			self.List.List:Empty()
-		end
-		self:RestoreExpandQuests()		-- Hide window first, then restore
-		self.LHAttached = nil
-	end
+
+	self:RestoreExpandQuests()		-- Hide window first, then restore
+
+	self.LHAttached = nil
 end
 
 function Nx.Quest:LightHeadedAttach (frm, attach, onlyLevels)
