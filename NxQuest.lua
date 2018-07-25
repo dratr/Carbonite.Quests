@@ -48,9 +48,6 @@ BINDING_HEADER_CarboniteQuests	= "|cffc0c0ff" .. L["Carbonite Quests"] .. "|r"
 BINDING_NAME_NxTOGGLEWATCHMINI	= L["NxTOGGLEWATCHMINI"]
 BINDING_NAME_NxWATCHUSEITEM	= L["NxWATCHUSEITEM"]
 
-CBQUEST_TEMPLATE = QUEST_TEMPLATE_LOG
-CBQUEST_TEMPLATE.canHaveSealMaterial = nil
-
 local defaults = {
 	profile = {
 		Quest = {
@@ -3355,6 +3352,10 @@ end
 function Nx.Quest:SelectBlizz (qi)
 	if qi > 0 then
 		SelectQuestLogEntry (qi)
+		local _, _, _, _, _, _, _, qid = GetQuestLogTitle(qi)
+		-- This is needed by "seal" emblem quests
+		-- in blizzard QuestInfo_Display()
+		NxQuestD.questID = qid
 	end
 end
 
@@ -8179,12 +8180,15 @@ function Nx.Quest:UpdateQuestDetails()
 	QDetail = Nx:ScheduleTimer(self.UpdateQuestDetailsTimer,0,self)
 end
 
+local NX_QUEST_TEMPLATE_LOG = QUEST_TEMPLATE_LOG
+
 function Nx.Quest:UpdateQuestDetailsTimer()
 
 	--	Nx.prt ("UpdateQuestDetails")
-	QuestInfo_Display (CBQUEST_TEMPLATE, NXQuestLogDetailScrollChildFrame,nil,nil,"Carb")
+	QuestInfo_Display (NX_QUEST_TEMPLATE_LOG, NXQuestLogDetailScrollChildFrame, nil, nil, "Carb")
 
 	local r, g, b, a = Nx.Util_str2rgba (Nx.qdb.profile.Quest.DetailBC)
+	self.List.DetailsFrm.texture:SetColorTexture (r, g, b, a)
 
 	-- 0.18, 0.12, 0.06 parchment
 	local r, g, b = Nx.Util_str2rgba (Nx.qdb.profile.Quest.DetailTC)
@@ -8218,6 +8222,11 @@ function Nx.Quest:UpdateQuestDetailsTimer()
 	MapQuestInfoRewardsFrame["ItemReceiveText"]:SetTextColor(r, g, b)
 --	MapQuestInfoRewardsFrame["SpellLearnText"]:SetTextColor(r, g, b)
 	MapQuestInfoRewardsFrame["PlayerTitleText"]:SetTextColor(r, g, b)
+
+	local spellLearnPool = MapQuestInfoRewardsFrame.spellHeaderPool
+	for spellHeader in spellLearnPool:EnumerateActive() do
+		spellHeader:SetTextColor(r, g, b)
+	end
 
 	for n = 1, 10 do
 		if _G["QuestInfoObjective" .. n] then
@@ -9167,7 +9176,7 @@ function Nx.Quest.Watch:UpdateList()
 					end
 				end
 				local tasks = {}
-				if Nx.qdb.profile.QuestWatch.BonusTask then
+				if Nx.qdb.profile.QuestWatch.BonusTask and map.UpdateMapID then
 					local taskInfo = C_TaskQuest.GetQuestsForPlayerByMapID(map.UpdateMapID);
 					if taskInfo then
 						for i=1,#taskInfo do
