@@ -8151,7 +8151,6 @@ function Nx.Quest:UpdateQuestDetailsTimer()
 	QuestInfo_Display (NX_QUEST_TEMPLATE_LOG, NXQuestLogDetailScrollChildFrame, nil, nil, "Carb")
 
 	local r, g, b, a = Nx.Util_str2rgba (Nx.qdb.profile.Quest.DetailBC)
-	self.List.DetailsFrm.texture:SetColorTexture (r, g, b, a)
 
 	-- 0.18, 0.12, 0.06 parchment
 	local r, g, b = Nx.Util_str2rgba (Nx.qdb.profile.Quest.DetailTC)
