@@ -2818,7 +2818,8 @@ function Nx.Quest:Init()
 	}
 	
 	self.QInit = true
-	hooksecurefunc ("ToggleQuestLog", function(...)
+	Nx.Quest.OldToggleQuestLog = ToggleQuestLog
+	function ToggleQuestLog(...)
 		local orig = IsAltKeyDown() and not self.IgnoreAlt
 		if Nx.qdb.profile.Quest.UseAltLKey then
 			orig = not orig
@@ -2831,9 +2832,9 @@ function Nx.Quest:Init()
 				Nx.Quest:ShowUIPanel ()
 			end
 		else
-			Nx.Quest.OldWindow()
+			Nx.Quest.OldToggleQuestLog()
 		end
-	end)
+	end
 	--[[Nx.Quest.OldWindow = ToggleQuestLog
 	function ToggleQuestLog(...)
 		local orig = IsAltKeyDown() and not self.IgnoreAlt
