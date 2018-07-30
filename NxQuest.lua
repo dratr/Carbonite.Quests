@@ -2828,7 +2828,6 @@ function Nx.Quest:Init()
 			orig = not orig
 		end
 		if not orig then
-			HideUIPanel(WorldMapFrame)
 			if self.IsOpen then
 				Nx.Quest:HideUIPanel ()
 			else
@@ -6025,8 +6024,8 @@ end
 
 function Nx.Quest.List:OnWin (typ)
 
-	if typ == "Close" then
-		HideUIPanel (QuestMapFrame)
+	if typ == "Hide" then
+		Nx.Quest:HideUIPanel()
 --		QuestLogFrame:Hide()
 	end
 end
