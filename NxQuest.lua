@@ -3613,7 +3613,7 @@ function Nx.Quest:RecordQuestsLog()
 
 	self.RealQ = {}
 
-	local header = "?"
+	local header = "War Campaign"
 
 	self.RealQEntries = qcnt
 
