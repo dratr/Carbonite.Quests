@@ -6342,8 +6342,8 @@ function Nx.Quest.List:OnSendQuestInfoTimer()
 
 	local qid = self.SendQInfoQId
 	local i, cur
-	if (qid > 0)
-		i, cur = Nx.Quest:FindCurById (qi)
+	if (qid > 0) then
+		i, cur = Nx.Quest:FindCurById (qid)
 	end
 
 	if not i then
