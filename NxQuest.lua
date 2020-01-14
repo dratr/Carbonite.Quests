@@ -9231,6 +9231,7 @@ function Nx.Quest.Watch:UpdateList()
 								list:ItemAdd(0)
 								list:ItemSet(2,"|cffff00ff----[ |cffffff00" .. task_title .. " |cffff00ff]----")
 								list:ItemAdd(0)
+								if not title then title = "none " .. i end
 								list:ItemSet(2,Nx.Util_str2colstr (Nx.qdb.profile.QuestWatch.OIncompleteColor) .. title)
 								local _,_, numObjectives = GetTaskInfo(questId)
 								if numObjectives and numObjectives > 0 then
