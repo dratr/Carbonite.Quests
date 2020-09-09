@@ -8011,7 +8011,7 @@ function Nx.Quest:UpdateIcons (map)
 
 						map:ClipFrameZ (f, x, y, 24, 24, 0)
 
-						local selected = info.questId == GetSuperTrackedQuestID();
+						local selected = info.questId == C_SuperTrack.GetSuperTrackedQuestID();
 
 						local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget(info.questId);
 
@@ -8025,7 +8025,7 @@ function Nx.Quest:UpdateIcons (map)
 							  if ( not ChatEdit_TryInsertQuestLinkForQuestID(self.questID) ) then
 								PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);						 
 								if IsShiftKeyDown() then
-								  if IsWorldQuestHardWatched(self.questID) or (IsWorldQuestWatched(self.questID) and GetSuperTrackedQuestID() == self.questID) then
+								  if IsWorldQuestHardWatched(self.questID) or (IsWorldQuestWatched(self.questID) and C_SuperTrack.GetSuperTrackedQuestID() == self.questID) then
 									BonusObjectiveTracker_UntrackWorldQuest(self.questID);
 								  else
 									BonusObjectiveTracker_TrackWorldQuest(self.questID, true);
