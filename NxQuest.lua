@@ -2781,7 +2781,9 @@ function Nx.Quest:Init()
 --			Nx.prt ("auto")
 			Nx.Quest:RecordQuestAcceptOrFinish()
 		end
-
+		
+		table.insert(Nx.Quest.AcceptPool, GetQuestID())
+		
 		--QuestFrameDetailPanel_OnShow()
 		
 		local auto = Nx.qdb.profile.Quest.AutoAccept
