@@ -3287,7 +3287,7 @@ end
 function Nx.Quest:Menu_OnTrack()
 
 	local cur = self.IconMenuCur
-	local v = cur.QId * 0x10000 + self.IconMenuObjI * 0x100 + cur.QI
+	local v = cur.QId * 0x10000 + self.IconMenuObjI * 0x100 + cur.QActive
 
 --	Nx.prt ("Track %x (%d)", v, self.IconMenuObjI)
 
@@ -3305,13 +3305,13 @@ function Nx.Quest:Menu_OnShowQuest()
 	self.List.Bar:Select (1)
 
 	local cur = self.IconMenuCur
-	self.List:Select (cur.QId, cur.QI)
+	self.List:Select (cur.QId)
 end
 
 function Nx.Quest:Menu_OnWatch (item)
 
 	local cur = self.IconMenuCur
-	self.List:ToggleWatch (cur.QId, cur.QI, 0)
+	self.List:ToggleWatch (cur.QId)
 end
 
 -------------------------------------------------------------------------------
@@ -3363,7 +3363,7 @@ function Nx.Quest:FinishQuest()
 		return
 	end
 
-	cur.QI = 0		-- 0 so we dont get a final party message
+	cur.QActive = 0		-- 0 so we dont get a final party message
 
 	local qId = cur.QId
 
@@ -3551,81 +3551,81 @@ function Nx.Quest:RecordQuestsLog()
 
 		for curi, cur in ipairs (curq) do
 
-			local qi = cur.QI
-			if qi > 0 then
-
+			for qn = 1, qcnt do
+				local qi = qn
 				local title, level, groupCnt, isHeader, isCollapsed, isComplete, _, questID = GetQuestLogTitle (qi)
-				title = self:ExtractTitle (title)
+				if cur.QId == questID then
+					title = self:ExtractTitle (title)
 
---				Nx.prt ("QD %s %s %s %s", title, qi, isHeader and "H1" or "H0", isComplete and "C1" or "C0")
+	--				Nx.prt ("QD %s %s %s %s", title, qi, isHeader and "H1" or "H0", isComplete and "C1" or "C0")
 
-				if cur.Title == title then		-- Still matches?
+					if cur.Title == title then		-- Still matches?
 
-					local change
+						local change
 
-					if isComplete == 1 and not cur.Complete then
-						Nx.prt (L["Quest Complete '%s'"], title)
+						if isComplete == 1 and not cur.Complete then
+							Nx.prt (L["Quest Complete '%s'"], title)
 
-						if Nx.qdb.profile.Quest.SndPlayCompleted then
-							self:PlaySound()
+							if Nx.qdb.profile.Quest.SndPlayCompleted then
+								self:PlaySound()
+							end
+
+							if Nx.qdb.profile.Quest.AutoTurnInAC and cur.IsAutoComplete then
+								ShowQuestComplete ((C_QuestLog.GetQuestIDForLogIndex(qi))
+							end
+
+							if Nx.qdb.profile.QuestWatch.RemoveComplete and not cur.IsAutoComplete then
+								self.Watch:RemoveWatch (cur.QId)
+								self.Watch:Update()
+								self.WQList:Update()
+								change = false
+							else
+								change = true
+							end
+
 						end
 
-						if Nx.qdb.profile.Quest.AutoTurnInAC and cur.IsAutoComplete then
-							ShowQuestComplete (C_QuestLog.GetQuestIDForLogIndex(qi))
-							
-						end
+						local lbCnt = GetNumQuestLeaderBoards (qi)
+						for n = 1, lbCnt do
 
-						if Nx.qdb.profile.QuestWatch.RemoveComplete and not cur.IsAutoComplete then
-							self.Watch:RemoveWatch (cur.QId, cur.QI)
-							self.Watch:Update()
-							self.WQList:Update()
-							change = false
-						else
-							change = true
-						end
+							local desc, _, done = GetQuestLogLeaderBoard (n, qi)
 
-					end
+							--V4
 
-					local lbCnt = GetNumQuestLeaderBoards (qi)
-					for n = 1, lbCnt do
+							if desc and (desc ~= cur[n] or done ~= cur[n + 100]) then
 
-						local desc, _, done = GetQuestLogLeaderBoard (n, qi)
+	--							Nx.prt ("Q Change %s->%s", desc, cur[n] or "nil")
 
-						--V4
-
-						if desc and (desc ~= cur[n] or done ~= cur[n + 100]) then
-
---							Nx.prt ("Q Change %s->%s", desc, cur[n] or "nil")
-
-							if Nx.qdb.profile.QuestWatch.AddChanged then
-								if change == nil then
-									change = true
+								if Nx.qdb.profile.QuestWatch.AddChanged then
+									if change == nil then
+										change = true
+									end
 								end
+
+								local s1, _, oldCnt = strfind (cur[n] or "", "(%d+)/%d+ ")
+								if s1 then
+									oldCnt = tonumber (oldCnt)
+								end
+
+								local s1, _, newCnt = strfind (desc, "(%d+)/%d+ ")
+								if s1 then
+	--								Nx.prt ("%s %s", i, total)
+									newCnt = tonumber (newCnt)
+								end
+
+								if done or (oldCnt and newCnt and newCnt > oldCnt) then
+									self:Capture (curi, n)
+								end
+
+								lastChanged = cur
+
+								partySend = true
 							end
-
-							local s1, _, oldCnt = strfind (cur[n] or "", "(%d+)/%d+ ")
-							if s1 then
-								oldCnt = tonumber (oldCnt)
-							end
-
-							local s1, _, newCnt = strfind (desc, "(%d+)/%d+ ")
-							if s1 then
---								Nx.prt ("%s %s", i, total)
-								newCnt = tonumber (newCnt)
-							end
-
-							if done or (oldCnt and newCnt and newCnt > oldCnt) then
-								self:Capture (curi, n)
-							end
-
-							lastChanged = cur
-
-							partySend = true
 						end
-					end
 
-					if change and Nx.qdb.profile.QuestWatch.AddChanged then
-						self.Watch:Add (curi)
+						if change and Nx.qdb.profile.QuestWatch.AddChanged then
+							self.Watch:Add (curi)
+						end
 					end
 				end
 			end
@@ -3702,7 +3702,7 @@ function Nx.Quest:RecordQuestsLog()
 				qIds[qId] = cur
 
 				cur.Q = quest
-				cur.QI = qn						-- Blizzard index
+				cur.QActive = 1
 				cur.QId = qId
 				cur.Header = header
 				cur.Title = title
@@ -3879,7 +3879,7 @@ function Nx.Quest:RecordQuestsLog()
 					cur.PartyDesc = format ("\n|cff8080f0%s|r", plName)
 					cur.PartyNames = cur.PartyDesc
 					cur.Q = quest
-					cur.QI = 0
+					cur.QActive = 0
 					cur.QId = qId
 					cur.Header = "Party, " .. plName
 					cur.Title = name
@@ -4184,7 +4184,7 @@ function Nx.Quest:CurQSetPreviousDone()
 	local cnt = 0
 
 	for curi, cur in ipairs (self.CurQ) do
-		if cur.QI > 0 then
+		if cur.QActive > 0 then
 			cnt = cnt + self:CalcPreviousDone (cur.QId)
 		end
 	end
@@ -4469,7 +4469,7 @@ function Nx.Quest:FindNewQuest()
 				if not self.RealQ[title] then
 --					Nx.prtVar ("RealQ", self.RealQ)
 					self.AcceptQName = nil
-					return qn
+					return questID
 				end
 			end
 		end
@@ -4758,12 +4758,13 @@ function Nx.Quest:TellPartyOfChanges()
 
 	for _, cur in ipairs (curq) do
 
-		if cur.QI > 0 then
+		if cur.QActive > 0 then
+			local qidx = Nx.Quest.GetQuestIndex(cur.QId)
 
 			for n = 1, cur.LBCnt do
 
 				local skip
-				local desc, _, done = GetQuestLogLeaderBoard (n, cur.QI)
+				local desc, _, done = GetQuestLogLeaderBoard (n, qidx)
 				if desc then
 					if not done then
 
@@ -4819,7 +4820,19 @@ function Nx.Quest:GetPartTitle (quest, cur)
 	return s
 end
 
-function Nx.Quest:FindCur (qId, qIndex)
+function Nx.Quest.GetQuestIndex(qId)
+	local qcnt = GetNumQuestLogEntries()
+
+	for i = 1, qcnt do
+		local _, _, _, _, _, _, _, qid = GetQuestLogTitle(i)
+		if qid == qId then
+			return i
+		end
+	end
+	return 0
+end
+
+function Nx.Quest:FindCur (qId)
 
 	if type (qId) == "string" then	-- Quest title?
 
@@ -4832,11 +4845,6 @@ function Nx.Quest:FindCur (qId, qIndex)
 		return
 	end
 
-	if qIndex and qIndex > 0 and qId == 0 then
-		local i, cur = self:FindCurByIndex (qIndex)
-		return i, cur, cur.Title	-- Also return string type id
-	end
-
 	assert (qId > 0)
 
 	for n, v in ipairs (self.CurQ) do
@@ -4846,12 +4854,12 @@ function Nx.Quest:FindCur (qId, qIndex)
 	end
 end
 
-function Nx.Quest:FindCurByIndex (qi)
-	assert (qi > 0)
+function Nx.Quest:FindCurById (qid)
+	assert (qid > 0)
 	local curq = self.CurQ
 
 	for n, v in ipairs (curq) do
-		if v.QI == qi then
+		if v.QId == qid then
 			return n, v
 		end
 	end
@@ -4984,7 +4992,7 @@ function Nx.Quest:Goto (qId)
 	local cur = {}
 	cur.Goto = true
 	cur.Q = quest
-	cur.QI = 0
+	cur.QActive = 0
 	cur.QId = qId
 	cur.Header = L["Goto"]
 	cur.Title = L["Goto: "] .. name
@@ -5011,15 +5019,17 @@ function Nx.Quest:Goto (qId)
 	self.List:Update()
 end
 
-function Nx.Quest:Abandon (qIndex, qId)
+function Nx.Quest:Abandon (qId)
+
+	self:ExpandQuests()
+	local qIndex = Nx.Quest.GetQuestIndex(qId)
 
 	if qIndex > 0 then
 
-		self:ExpandQuests()
 
-		local title, level, groupCnt, isHeader = GetQuestLogTitle (qIndex)
+		local title, level, groupCnt, isHeader, _, _, _, questID = GetQuestLogTitle (qIndex)
 
-		if not isHeader then
+		if not isHeader and questID == qId then
 
 --			Nx.prt ("Abandon %s %s", qIndex, title)		
 --			QuestLog_SetSelection (qIndex)
@@ -5054,13 +5064,13 @@ function Nx.Quest:Abandon (qIndex, qId)
 				end
 			)
 		end
+	end
 
-		self:RestoreExpandQuests()
+	self:RestoreExpandQuests()
 
-	else
-		if qId > 0 then
+		if qIndex <= 0 and qId > 0 then
 
-			self.Watch:RemoveWatch (qId, qIndex)
+			self.Watch:RemoveWatch (qId)
 			local i = self:FindCur (qId)
 			if i then
 				local curq = self.CurQ
@@ -5068,7 +5078,6 @@ function Nx.Quest:Abandon (qIndex, qId)
 			end
 			Nx.Quest:NullQuest (qId)
 		end
-	end
 end
 
 -------------------------------------------------------------------------------
@@ -5877,9 +5886,9 @@ function Nx.Quest.List:UpdateMenu()
 		local i = self.List:ItemGetData()
 		if i then
 
-			local qi = bit.band (i, 0xff)
-			if qi > 0 then
-				local i, cur = Nx.Quest:FindCurByIndex (qi)
+			local qid = bit.rshift (i, 16)
+			if qid > 0 then
+				local i, cur = Nx.Quest:FindCurById (qid)
 				if cur then
 					if cur.CanShare then
 						show = true
@@ -6076,11 +6085,10 @@ function Nx.Quest.List:Select (qId, qI)
 		local i = list:ItemGetData (n)
 		if i then
 
-			local qi = bit.band (i, 0xff)
 			local qid = bit.rshift (i, 16)
 
-			if qi == qI and qid == qId then
-
+			if qid == qId then
+				local qi = Nx.Quest.GetQuestIndex(qid)
 				Nx.Quest:SelectBlizz (qi)
 				list:Select (n)
 				self:Update()
@@ -6098,10 +6106,9 @@ function Nx.Quest.List:GetCurSelected()
 	local i = self.List:ItemGetData()
 	if i then
 
-		local qi = bit.band (i, 0xff)
 		local qid = bit.rshift (i, 16)
-		if qid > 0 or qi > 0 then
-			local _, cur = Nx.Quest:FindCur (qid, qi)
+		if qid > 0 then
+			local _, cur = Nx.Quest:FindCur (qid)
 			return cur
 		end
 --[[
@@ -6212,13 +6219,12 @@ function Nx.Quest.List:Menu_OnGoto (item)
 	local i = self.List:ItemGetData()
 	if i then
 
-		local qIndex = bit.band (i, 0xff)
+		local qId = bit.rshift (i, 16)
 
-		if qIndex > 0 then
+		if qId > 0 then
 			Nx.prt (L["Already have the quest!"])
 
 		else
-			local qId = bit.rshift (i, 16)
 			Nx.Quest:Goto (qId)
 
 			self:Update()
@@ -6357,16 +6363,16 @@ function Nx.Quest.List:Menu_OnSendQInfo (item)
 	local i = self.List:ItemGetData()
 	if i then
 
-		local qi = bit.band (i, 0xff)
-		self:SendQuestInfo (qi)
+		local qid = bit.rshift (i, 16)
+		self:SendQuestInfo (qid)
 	end
 end
 
-function Nx.Quest.List:SendQuestInfo (qi)
+function Nx.Quest.List:SendQuestInfo (qid)
 
-	if qi > 0 then
+	if qid > 0 then
 
-		self.SendQInfoQI = qi
+		self.SendQInfoQId = qid
 		self.SendQInfoMode = -1
 		self.SendQTarget = nil
 
@@ -6387,10 +6393,10 @@ end
 
 function Nx.Quest.List:OnSendQuestInfoTimer()
 
-	local qi = self.SendQInfoQI
+	local qid = self.SendQInfoQId
 	local i, cur
-	if (qi > 0) then
-	    i, cur = Nx.Quest:FindCurByIndex (qi)
+	if (qid > 0) then
+		i, cur = Nx.Quest:FindCurById (qid)
 	end
 
 	if not i then
@@ -6441,7 +6447,8 @@ function Nx.Quest.List:Menu_OnShare (item)
 	local i = self.List:ItemGetData()
 	if i then
 
-		local qi = bit.band (i, 0xff)
+		local qid = bit.rshift (i, 16)
+		local qi = GetQuestIndex(qid)
 		if qi > 0 then
 			if GetNumSubgroupMembers() > 0 then
 				QuestLogPushQuest()
@@ -6457,9 +6464,8 @@ function Nx.Quest.List:Menu_OnAbandon (item)
 	local i = self.List:ItemGetData()
 	if i then
 
-		local qIndex = bit.band (i, 0xff)
 		local qId = bit.rshift (i, 16)
-		Nx.Quest:Abandon (qIndex, qId)
+		Nx.Quest:Abandon (qId)
 
 --		self:Update()	-- Dialog gets closed!
 	end
@@ -6502,8 +6508,8 @@ function Nx.Quest.List:OnListEvent (eventName, sel, val2, click)
 	local itemData = self.List:ItemGetData (sel) or 0
 	local hdrCur = self.List:ItemGetDataEx (sel, 1)
 
-	local qIndex = bit.band (itemData, 0xff)
 	local qId = bit.rshift (itemData, 16)
+	local qIndex = Nx.Quest.GetQuestIndex(qId)
 
 	local shift = IsShiftKeyDown() or eventName == "mid"
 
@@ -6526,10 +6532,9 @@ function Nx.Quest.List:OnListEvent (eventName, sel, val2, click)
 						break
 					end
 
-					local qIndex = bit.band (itemData, 0xff)
 					local qId = bit.rshift (itemData, 16)
 
-					local i, cur, id = Quest:FindCur (qId, qIndex)
+					local i, cur, id = Quest:FindCur (qId)
 
 					if not setStr then
 
@@ -6546,7 +6551,7 @@ function Nx.Quest.List:OnListEvent (eventName, sel, val2, click)
 
 				-- Track or paste to chat
 
-				local i, cur, id = Quest:FindCur (qId, qIndex)
+				local i, cur, id = Quest:FindCur (qId)
 
 				local box = Nx:FindActiveChatFrameEditBox()
 				if box then
@@ -6617,7 +6622,7 @@ function Nx.Quest.List:OnListEvent (eventName, sel, val2, click)
 
 			if self.TabSelected == 1 then
 
-				self:ToggleWatch (qId, qIndex, qObj, shift)
+				self:ToggleWatch (qId, qObj, shift)
 
 			elseif self.TabSelected == 3 then
 
@@ -6649,20 +6654,20 @@ function Nx.Quest.List:OnListEvent (eventName, sel, val2, click)
 	end
 end
 
-function Nx.Quest.List:ToggleWatch (qId, qIndex, qObj, shift)
+function Nx.Quest.List:ToggleWatch (qId, qObj, shift)
 
 	local Quest = Nx.Quest
 	local Map = Nx.Map
 
+	local i, cur, id = Quest:FindCur (qId)
 	if qObj == 0 and not shift then
 
-		local i, cur, id = Quest:FindCur (qId, qIndex)
 		if cur then
 
 			local qStatus = Nx.Quest:GetQuest (id)
 			if qStatus == "W" then
 
-				Nx.Quest.Watch:RemoveWatch (qId, qIndex)
+				Nx.Quest.Watch:RemoveWatch (qId)
 			else
 				Nx.Quest:SetQuest (id, "W")
 			end
@@ -6691,7 +6696,8 @@ function Nx.Quest.List:ToggleWatch (qId, qIndex, qObj, shift)
 			end
 
 			local mapId = Map:GetCurrentMapId()
-			Quest:TrackOnMap (qId, qObj, qIndex > 0, true)
+			
+			Quest:TrackOnMap (qId, qObj, cur and cur.QActive > 0, true)
 			Map:SetCurrentMap (mapId)
 		end
 	end
@@ -6940,13 +6946,13 @@ function Nx.Quest.List:LogUpdate()
 
 	local Quest = Nx.Quest
 
-	local qn
+	local qid
 
 	Quest:ExpandQuests()
 
 	if not self.LoggingIn then
-		qn = Quest:FindNewQuest()
-		if not qn then
+		qid = Quest:FindNewQuest()
+		if not qid then
 --			Quest:CheckForNewCompleted()
 			Quest:TellPartyOfChanges()
 		end
@@ -6960,18 +6966,14 @@ function Nx.Quest.List:LogUpdate()
 			QHistLogin = Nx:ScheduleTimer(Quest.QuestQueryTimer, 1, Quest)
 		end
 	end
-	
-	for k, qn in ipairs (Quest.AcceptPool) do
-		local qi = C_QuestLog.GetLogIndexForQuestID (qn) or 0
-		if qi > 0 then
-			local curi, cur = Quest:FindCurByIndex (qi)
-			if cur then
-				Quest.QIdsNew[cur.QId] = time()
-				--Nx.prt ("OnQuestUpdate Watch %d %d", qn, k)
-				if Nx.qdb.profile.QuestWatch.AddNew and not Quest.DailyPVPIds[cur.QId] then
-					Quest.Watch:Add (curi,true)
-				end
-				Quest:Capture (curi)
+	if qid and qid > 0 then
+
+		local curi, cur = Quest:FindCurById (qid)
+		if cur then
+			Quest.QIdsNew[cur.QId] = time()
+
+			if Nx.qdb.profile.QuestWatch.AddNew and not Quest.DailyPVPIds[cur.QId] then
+				Quest.Watch:Add (curi,true)
 			end
 			table.remove(Quest.AcceptPool, k)
 		end
@@ -7041,9 +7043,10 @@ function Nx.Quest.List:Update()
 			local qId = cur.QId
 
 			local title, level, tag, isComplete = cur.Title, cur.Level, cur.Tag, cur.Complete
-			local qn = cur.QI
+			local isActive = cur.QActive
+			local qn = Nx.Quest.GetQuestIndex(qId)
 			
-			if qn > 0 then
+			if isActive and qn > 0 then
 				C_QuestLog.SetSelectedQuest (C_QuestLog.GetQuestIDForLogIndex(qn))
 			end
 
@@ -7125,7 +7128,7 @@ function Nx.Quest.List:Update()
 					local qStatus = Nx.Quest:GetQuest (id)
 					local qWatched = qStatus == "W"
 
-					list:ItemAdd (qId * 0x10000 + qn)
+					list:ItemAdd (qId * 0x10000)
 
 					local trackMode = Quest.Tracking[qId] or 0
 
@@ -7190,7 +7193,7 @@ function Nx.Quest.List:Update()
 							color = done and oCompColor or oIncompColor
 							str = format ("     %s%s", color, desc)
 
-							list:ItemAdd (qId * 0x10000 + ln * 0x100 + qn)
+							list:ItemAdd (qId * 0x10000 + ln * 0x100)
 
 							local trkStr = ""
 
@@ -7693,11 +7696,14 @@ function Nx.Quest.List:Update()
 
 		local i = list:GetSelected()
 		local data = list:ItemGetData (i) or 0
+		local qId = bit.rshift (data, 16)
 
 --		Nx.prt ("%s %s", i, data)
 
 		if data > 0 then
-			Nx.Quest:SelectBlizz (bit.band (data, 0xff))
+			local qId = bit.rshift (data, 16)
+			local qindex = Nx.Quest.GetQuestIndex(qId)
+			Nx.Quest:SelectBlizz (qindex)
 			NxQuestD:Show()
 
 			Quest:UpdateQuestDetails()
@@ -7820,7 +7826,7 @@ function Nx.Quest:UpdateIcons (map)
 
 		if cur then
 			Quest:CalcDistances (cur.Index, cur.Index)
-			Quest:TrackOnMap (cur.QId, tid % 100, cur.QI > 0 or cur.Party, true, true)
+			Quest:TrackOnMap (cur.QId, tid % 100, cur.QActive > 0 or cur.Party, true, true)
 
 --			Nx.prt ("UpIcons target %s %s", typ or "nil", tid or "nil")
 		end
@@ -7905,7 +7911,7 @@ function Nx.Quest:UpdateIcons (map)
 
 		if bit.band (mask, 1) > 0 then
 
-			if not (cur and (cur.QI > 0 or cur.Party)) then
+			if not (cur and (cur.QActive > 0 or cur.Party)) then
 
 				local startName, zone, x, y = Quest:GetSEPos (quest["Start"])
 				local mapId = zone
@@ -7955,7 +7961,7 @@ function Nx.Quest:UpdateIcons (map)
 
 		-- Objectives (max of 15)
 
-		if not cur or cur.QI > 0 or cur.Party then
+		if not cur or cur.QActive > 0 or cur.Party then
 
 			local drawArea
 
@@ -8346,7 +8352,12 @@ local NX_QUEST_TEMPLATE_LOG = QUEST_TEMPLATE_LOG
 function Nx.Quest:UpdateQuestDetailsTimer()
 
 	--	Nx.prt ("UpdateQuestDetails")
-	QuestInfo_Display (NX_QUEST_TEMPLATE_LOG, NXQuestLogDetailScrollChildFrame, nil, nil, "Carb")
+	if NxQuestD.questID then
+		local qidx = Nx.Quest.GetQuestIndex(NxQuestD.questID)
+		SelectQuestLogEntry(qidx)
+	end
+	
+	QuestInfo_Display (CBQUEST_TEMPLATE, NXQuestLogDetailScrollChildFrame,nil,nil,"Carb")
 
 	local r, g, b, a = Nx.Util_str2rgba (Nx.qdb.profile.Quest.DetailBC)
 
@@ -8917,7 +8928,7 @@ end
 
 function Nx.Quest.Watch:Menu_OnRemoveWatch (item)
 
-	self:RemoveWatch (self.MenuQId, self.MenuQIndex)
+	self:RemoveWatch (self.MenuQId)
 	self:Update()
 	Nx.Quest.List:Update()
 end
@@ -8928,7 +8939,7 @@ function Nx.Quest.Watch:Menu_OnShowQuest()
 	--ShowUIPanel (QuestMapFrame)
 
 	Nx.Quest.List.Bar:Select (1)
-	Nx.Quest.List:Select (self.MenuQId, self.MenuQIndex)
+	Nx.Quest.List:Select (self.MenuQId)
 end
 
 function Nx.Quest.Watch:Menu_OnShowMap (item)
@@ -8943,13 +8954,16 @@ end
 
 function Nx.Quest.Watch:Menu_OnShare (item)
 
-	local qi = self.MenuQIndex
-	if qi > 0 then
+	local qid = self.MenuQId
+	if qid > 0 then
 
 		if GetNumSubgroupMembers() > 0 then
 			Nx.Quest:ExpandQuests()
 --			Nx.Quest.List:Select (self.MenuQId, self.MenuQIndex)
-			QuestLogPushQuest (qi)
+			local qi = Nx.Quest.GetQuestIndex(qid)
+			if qi > 0 then
+				QuestLogPushQuest (qi)
+			end
 			Nx.Quest:RestoreExpandQuests()
 		else
 			Nx.prt (L["Must be in party to share"])
@@ -8958,8 +8972,8 @@ function Nx.Quest.Watch:Menu_OnShare (item)
 end
 
 function Nx.Quest.Watch:Menu_OnAbandon (item)
-	Nx.Quest.List:Select (self.MenuQId, self.MenuQIndex)
-	Nx.Quest:Abandon (self.MenuQIndex, self.MenuQId)
+	Nx.Quest.List:Select (self.MenuQId)
+	Nx.Quest:Abandon (self.MenuQId)
 end
 
 function Nx.Quest.Watch:Menu_OnRemoveAllWatches (item)
@@ -8969,16 +8983,16 @@ function Nx.Quest.Watch:Menu_OnRemoveAllWatches (item)
 	for n = 1, curq and #curq or 0 do
 
 		local cur = curq[n]
-		self:RemoveWatch (cur.QId, cur.QI)
+		self:RemoveWatch (cur.QId)
 	end
 
 	self:Update()
 	Nx.Quest.List:Update()
 end
 
-function Nx.Quest.Watch:RemoveWatch (qId, qI)
+function Nx.Quest.Watch:RemoveWatch (qId)
 
-	local i, cur, id = Nx.Quest:FindCur (qId, qI)
+	local i, cur, id = Nx.Quest:FindCur (qId)
 
 	if i then
 
@@ -8997,6 +9011,7 @@ function Nx.Quest.Watch:RemoveWatch (qId, qI)
 			end
 		end
 
+		local qI = Nx.Quest.GetQuestIndex(qId)
 		if QuestUtils_IsQuestWatched (qI) then	-- Blizz crap? Remove
 			C_QuestLog.RemoveQuestWatch (qI)
 		end
@@ -9633,10 +9648,10 @@ function Nx.Quest.Watch:UpdateList()
 						if 1 then
 							local level, isComplete = cur.Level, cur.CompleteMerge
 							local quest = cur.Q
-							local qi = cur.QI
+							local qi = Nx.Quest.GetQuestIndex(cur.QId)
 							local lbNum = cur.LBCnt
 --							local link, item, charges = GetQuestLogSpecialItemInfo (questIndex)
-							list:ItemAdd (qId * 0x10000 + qi)
+							list:ItemAdd (qId * 0x10000)
 							local trackMode = Quest.Tracking[qId] or 0
 							local obj = quest and (quest["End"] or quest["Start"])
 							if qId == 0 then
@@ -9667,7 +9682,7 @@ function Nx.Quest.Watch:UpdateList()
 								list:ItemSetButton ("QuestWatchTip", false)		-- QuestWatchTip  >  QuestWatch?
 							end
 							if cur.ItemLink and Nx.qdb.profile.QuestWatch.ItemScale >= 1 then
-								list:ItemSetFrame ("WatchItem~" .. cur.QI .. "~" .. cur.ItemImg .. "~" .. cur.ItemCharges)
+								list:ItemSetFrame ("WatchItem~" .. qi .. "~" .. cur.ItemImg .. "~" .. cur.ItemCharges)
 							end
 							list:ItemSetButtonTip ((cur.ObjText or "?") .. (cur.PartyDesc or ""))
 							local color = isComplete and compColor or incompColor
@@ -9712,7 +9727,7 @@ function Nx.Quest.Watch:UpdateList()
 								list:ItemAdd (0)
 								list:ItemSet (2, format ("|cff%2x0000--- " ..L["Click ? to complete"] .." ---", self.FlashColor * 200 + 55))
 							end
-							if qi > 0 or cur.Party then
+							if cur.QActive > 0 or cur.Party then
 								local desc, done
 								local zone, loc
 								local lnOffset = -1
@@ -9764,7 +9779,7 @@ function Nx.Quest.Watch:UpdateList()
 												str = "*" .. str
 											end
 										end
-										list:ItemAdd (qId * 0x10000 + ln * 0x100 + qi)
+										list:ItemAdd (qId * 0x10000 + ln * 0x100)
 										list:ItemSetOffset (16, lnOffset)
 										local butType = "QuestWatchErr"
 										if zone then
@@ -9796,7 +9811,7 @@ function Nx.Quest.Watch:UpdateList()
 												local s = strsub (str, 1, maxC)
 												list:ItemSet (2, s)
 												str = color .. strsub (str, maxC + 1)
-												list:ItemAdd (qId * 0x10000 + ln * 0x100 + qi)
+												list:ItemAdd (qId * 0x10000 + ln * 0x100)
 												list:ItemSetOffset (16, lnOffset)
 												maxC = maxCOpt
 											end
@@ -9916,7 +9931,6 @@ function Nx.Quest.Watch:OnListEvent (eventName, val1, val2, click, but)
 
 		local data = self.List:ItemGetData (val1)
 		if data then
-			local qIndex = bit.band (data, 0xff)
 			local qId = bit.rshift (data, 16)
 			local typ = but:GetType()
 			if typ.CustomTip or typ.EmissaryTip then
@@ -9934,7 +9948,7 @@ function Nx.Quest.Watch:OnListEvent (eventName, val1, val2, click, but)
 				else
 
 					if IsAltKeyDown() then
-						Quest.List:SendQuestInfo (qIndex)
+						Quest.List:SendQuestInfo (qId)
 
 					else
 
@@ -9962,10 +9976,11 @@ function Nx.Quest.Watch:OnListEvent (eventName, val1, val2, click, but)
 --]]
 						else
 
-							local i, cur = Quest:FindCur (qId, qIndex)
+							local i, cur = Quest:FindCur (qId)
 							if cur and cur.CompleteMerge and cur.IsAutoComplete then
 --								Nx.prt ("ShowQuestComplete %s", qIndex)
-								ShowQuestComplete (C_QuestLog.GetQuestIDForLogIndex(qIndex))
+								local qIndex = Nx.Quest.GetQuestIndex(qId)
+								ShowQuestComplete (qId)
 
 							else
 								self:Set (data, val2, not IsShiftKeyDown())
@@ -9987,7 +10002,7 @@ function Nx.Quest.Watch:OnListEvent (eventName, val1, val2, click, but)
 					ToggleQuestLog()
 					Quest.IgnoreAlt = nil
 					Quest.List.Bar:Select (1)
-					Quest.List:Select (qId, qIndex)
+					Quest.List:Select (qId)
 
 				elseif IsShiftKeyDown() then
 
@@ -9995,7 +10010,6 @@ function Nx.Quest.Watch:OnListEvent (eventName, val1, val2, click, but)
 
 				else
 					self.MenuItemData = data
-					self.MenuQIndex = qIndex
 					self.MenuQId = qId
 
 					self.WatchMenu:Open()
@@ -10013,12 +10027,11 @@ function Nx.Quest.Watch:Set (data, on, track)
 
 	local Quest = Nx.Quest
 
-	local qIndex = bit.band (data, 0xff)
 	local qId = bit.rshift (data, 16)
 
 	if qId > 0 then
 
-		local i, cur = Quest:FindCur (qId, qIndex)
+		local i, cur = Quest:FindCur (qId)
 
 		if not (cur and cur.Q) then
 			Quest:MsgNotInDB()
@@ -10075,7 +10088,7 @@ function Nx.Quest.Watch:Set (data, on, track)
 			self:ClearCompleted (qId)
 		end
 
-		Quest:TrackOnMap (qId, qObj, qIndex > 0, track)
+		Quest:TrackOnMap (qId, qObj, cur.QActive > 0, track)
 
 		self:Update()
 		Quest.List:Update()
@@ -10125,7 +10138,6 @@ function Nx.Quest.Watch:ClearCompleted (qIdMatch)
 		local i = list:ItemGetData (ln)
 		if i then
 
-			local qIndex = bit.band (i, 0xff)
 			local qId = bit.rshift (i, 16)
 
 			if qId > 0 and (not qIdMatch or qIdMatch == qId) then
@@ -10154,7 +10166,7 @@ function Nx.Quest.Watch:ClearCompleted (qIdMatch)
 
 									if Nx.Quest:IsTargeted (qId) then
 										Quest.Tracking[qId] = bit.bor (tbits, objmask)
-										Quest:TrackOnMap (qId, 0, qIndex > 0, true)
+										Quest:TrackOnMap (qId, 0, cur.QActive > 0, true)
 									end
 								end
 							end
@@ -10176,7 +10188,7 @@ function Nx.Quest.Watch:ClearCompleted (qIdMatch)
 								if on > 0 then
 									-- Turn off
 									Quest.Tracking[qId] = bit.band (tbits, bit.bnot (objmask))
-									Quest:TrackOnMap (qId, qObj, qIndex > 0)
+									Quest:TrackOnMap (qId, qObj, cur.QActive > 0)
 								end
 							end
 						end
@@ -10337,7 +10349,7 @@ function Nx.Quest:CalcAutoTrack (cur)
 		if closeI and closeI >= 0 then
 
 			Quest.Tracking[cur.QId] = cur.TrackMask			-- bit.lshift (1, closeI)
-			Quest:TrackOnMap (cur.QId, closeI, cur.QI > 0 or cur.Party, true, true)
+			Quest:TrackOnMap (cur.QId, closeI, cur.QActive > 0 or cur.Party, true, true)
 		end
 
 		for objn = 1, 15 do
@@ -10776,7 +10788,7 @@ function Nx.Quest:CalcDistances (n1, n2)
 			break
 		end
 
-		local qi = cur.QI
+		local qactive = cur.QActive
 		local qId = cur.QId
 
 		local id = qId > 0 and qId or cur.Title
@@ -10801,7 +10813,7 @@ function Nx.Quest:CalcDistances (n1, n2)
 				local questObj
 
 				if qObj == 0 then
-					questObj = (qi > 0 or cur.Party) and quest["End"] or quest["Start"]	-- Start if goto or no end?
+					questObj = (qactive > 0 or cur.Party) and quest["End"] or quest["Start"]	-- Start if goto or no end?
 				else
 					if quest["Objectives"] then
 						questObj = quest["Objectives"][qObj]
