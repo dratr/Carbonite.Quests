@@ -8103,7 +8103,7 @@ function Nx.Quest:UpdateIcons (map)
 				local info = taskInfo[i]
 				local questId = taskInfo[i].questId				
 				local title, faction = C_TaskQuest.GetQuestInfoByQuestID(questId)
-				if QuestUtils_IsQuestWorldQuest (questId) and (worldquestdb[questId] and worldquestdb[questId].mapid == Map.UpdateMapID and not worldquestdb[questId].Filtered) then
+				if QuestUtils_IsQuestWorldQuest (questId) and (not worldquestdb[questId] or (worldquestdb[questId] and not worldquestdb[questId].Filtered)) then
 					activeWQ[questId] = true
 					C_TaskQuest.RequestPreloadRewardData (questId)
 					local tid, name, questtype, rarity, elite, tradeskill = GetQuestTagInfo (questId)
@@ -8115,18 +8115,9 @@ function Nx.Quest:UpdateIcons (map)
 
 						map:ClipFrameZ (f, x, y, 24, 24, 0)
 
-						local selected = info.questId == C_SuperTrack.GetSuperTrackedQuestID();
-						
-						local function WQTGetOverlay (memberName)
-							for i = 1, #WorldMapFrame.overlayFrames do
-								local overlay = WorldMapFrame.overlayFrames [i]
-								if (overlay [memberName]) then
-									return overlay
-								end
-							end
-						end
-						local isCriteria = WQTGetOverlay("IsWorldQuestCriteriaForSelectedBounty"):IsWorldQuestCriteriaForSelectedBounty(info.questId);
-						--local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget(info.questId);
+						local selected = info.questId == GetSuperTrackedQuestID();
+
+						local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget(info.questId);
 
 						f.worldQuest = true;
 						f.questID = info.questId
@@ -8156,9 +8147,7 @@ function Nx.Quest:UpdateIcons (map)
 							end
 						end)
 
-						local tagInfo = C_QuestLog.GetQuestTagInfo(info.questId);
-						local isEffectivelyTracked = watchType == Enum.QuestWatchType.Manual or (watchType == Enum.QuestWatchType.Automatic and C_SuperTrack.GetSuperTrackedQuestID() == info.questId)
-						QuestUtil.SetupWorldQuestButton(f, tagInfo, info.inProgress, selected, isCriteria, isSpellTarget, isEffectivelyTracked)
+						WorldMap_SetupWorldQuestButton(f, questtype, rarity, elite, tradeskill, info.inProgress, selected, nil, isSpellTarget)
 
 						f.texture:Hide()
 
