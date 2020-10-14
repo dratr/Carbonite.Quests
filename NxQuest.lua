@@ -3362,7 +3362,7 @@ end
 
 function Nx.Quest:SelectBlizz (qi)
 	if qi > 0 then
-		C_QuestLog.SetSelectedQuest(C_QuestLog.GSelectQuestLogEntry (qi)
+		C_QuestLog.SetSelectedQuest(C_QuestLog.GetQuestIDForLogIndex (qi))
 		local _, _, _, _, _, _, _, qid = GetQuestLogTitle(qi)
 		-- This is needed by "seal" emblem quests
 		-- in blizzard QuestInfo_Display()
@@ -3539,7 +3539,7 @@ function Nx.Quest:RecordQuestsLog()
 							end
 
 							if Nx.qdb.profile.Quest.AutoTurnInAC and cur.IsAutoComplete then
-								ShowQuestComplete ((C_QuestLog.GetQuestIDForLogIndex(qi))
+								ShowQuestComplete ((C_QuestLog.GetQuestIDForLogIndex(qi)))
 							end
 
 							if Nx.qdb.profile.QuestWatch.RemoveComplete and not cur.IsAutoComplete then
@@ -4789,7 +4789,7 @@ function Nx.Quest:GetPartTitle (quest, cur)
 end
 
 function Nx.Quest.GetQuestIndex(qId)
-	local qcnt = GetNumQuestLogEntries()
+	local qcnt = C_QuestLog.GetNumQuestLogEntries()
 
 	for i = 1, qcnt do
 		local _, _, _, _, _, _, _, qid = GetQuestLogTitle(i)
@@ -8115,7 +8115,7 @@ function Nx.Quest:UpdateIcons (map)
 
 						map:ClipFrameZ (f, x, y, 24, 24, 0)
 
-						local selected = info.questId == GetSuperTrackedQuestID();
+						local selected = info.questId == C_SuperTrack.GetSuperTrackedQuestID();
 
 						local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget(info.questId);
 
@@ -8147,7 +8147,7 @@ function Nx.Quest:UpdateIcons (map)
 							end
 						end)
 
-						WorldMap_SetupWorldQuestButton(f, questtype, rarity, elite, tradeskill, info.inProgress, selected, nil, isSpellTarget)
+--						WorldMap_SetupWorldQuestButton(f, questtype, rarity, elite, tradeskill, info.inProgress, selected, nil, isSpellTarget)
 
 						f.texture:Hide()
 
@@ -8296,11 +8296,10 @@ function Nx.Quest:UpdateQuestDetailsTimer()
 
 	--	Nx.prt ("UpdateQuestDetails")
 	if NxQuestD.questID then
-		local qidx = Nx.Quest.GetQuestIndex(NxQuestD.questID)
-		SelectQuestLogEntry(qidx)
+		C_QuestLog.SetSelectedQuest(NxQuestD.questID)
 	end
 	
-	QuestInfo_Display (CBQUEST_TEMPLATE, NXQuestLogDetailScrollChildFrame,nil,nil,"Carb")
+	QuestInfo_Display (NX_QUEST_TEMPLATE_LOG, NXQuestLogDetailScrollChildFrame,nil,nil,"Carb")
 
 	local r, g, b, a = Nx.Util_str2rgba (Nx.qdb.profile.Quest.DetailBC)
 
@@ -9424,6 +9423,7 @@ function Nx.Quest.Watch:UpdateList()
 				end
 				local tasks = {}
 				if Nx.qdb.profile.QuestWatch.BonusTask and map.UpdateMapID then
+					if false then
 					local taskInfo = C_TaskQuest.GetQuestsForPlayerByMapID(map.UpdateMapID);
 					if taskInfo then
 						for i=1,#taskInfo do
