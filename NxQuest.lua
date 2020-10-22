@@ -48,6 +48,22 @@ BINDING_HEADER_CarboniteQuests	= "|cffc0c0ff" .. L["Carbonite Quests"] .. "|r"
 BINDING_NAME_NxTOGGLEWATCHMINI	= L["NxTOGGLEWATCHMINI"]
 BINDING_NAME_NxWATCHUSEITEM	= L["NxWATCHUSEITEM"]
 
+local function GetQuestLogTitle(qn)
+	local q = C_QuestLog.GetInfo(qn)
+	if not q then
+		return
+	end
+	return q.title, q.level, q.suggestedGroup, q.isHeader, q.isCollapsed, q.isComplete, q.frequency, q.questID, q.startEvent, q.QuestID, q.isOnMap, q.hasLocalPOI, q.isTask, q.isBounty, q.isStory, q.isHidden, q.isScaling
+end
+
+local function GetQuestTagInfo(id)
+	local t = C_QuestLog.GetQuestTagInfo(id)
+	if not t then
+		return
+	end
+	return t.tagID, t.tagName, t.worldQuestType, t.quality, t.isElite, t.tradeskillLineIndex, t.displayTimeLeft
+end
+
 local defaults = {
 	profile = {
 		Quest = {
@@ -3319,8 +3335,8 @@ end
 
 function Nx.Quest:SelectBlizz (qi)
 	if qi > 0 then
-		SelectQuestLogEntry (qi)
-		local _, _, _, _, _, _, _, qid = GetQuestLogTitle(qi)
+		local qid = C_QuestLog.GetQuestIDForLogIndex(qi)
+		C_QuestLog.SetSelectedQuest (qid)
 		-- This is needed by "seal" emblem quests
 		-- in blizzard QuestInfo_Display()
 		NxQuestD.questID = qid
@@ -3342,7 +3358,7 @@ function Nx.Quest:ExpandQuests()
 
 	repeat
 		local found = false
-		local cnt = GetNumQuestLogEntries()
+		local cnt = C_QuestLog.GetNumQuestLogEntries()
 
 		for qn = 1, cnt do
 
@@ -3379,7 +3395,7 @@ function Nx.Quest:RestoreExpandQuests()
 
 --		Nx.prt ("Collapse %s", hName)
 
-		local cnt = GetNumQuestLogEntries()
+		local cnt = C_QuestLog.GetNumQuestLogEntries()
 		for qn = 1, cnt do
 
 			local title, level, groupCnt, isHeader, isCollapsed = GetQuestLogTitle (qn)
@@ -3407,7 +3423,7 @@ function Nx.Quest:AccessAllQuests()
 
 	self:ExpandQuests()
 
-	local qcnt = GetNumQuestLogEntries()
+	local qcnt = C_QuestLog.GetNumQuestLogEntries()
 
 	for qi = 1, qcnt do
 
@@ -3433,7 +3449,7 @@ end
 function Nx.Quest:RecordQuests(worldcheck)
 --	Nx.prt ("Record Quests")
 	local self = Nx.Quest
-	local qcnt = GetNumQuestLogEntries()
+	local qcnt = C_QuestLog.GetNumQuestLogEntries()
 	for qn = 1, qcnt do	-- Test all quests
 
 		local title, level = GetQuestLogTitle (qn)
@@ -3455,11 +3471,11 @@ end
 
 function Nx.Quest:RecordQuestsLog()
 
-	local qcnt = GetNumQuestLogEntries()
+	local qcnt = C_QuestLog.GetNumQuestLogEntries()
 
 	local opts = self.GOpts
 	local curq = self.CurQ
-	local oldSel = GetQuestLogSelection()
+	local oldSel = C_QuestLog.GetSelectedQuest()
 
 --	Nx.prt ("RecordQuestsLog %s, %s", qcnt, #curq)
 
@@ -3601,7 +3617,7 @@ function Nx.Quest:RecordQuestsLog()
 --			end
 		else
 			title = self:ExtractTitle (title)
-			SelectQuestLogEntry (qn)
+			C_QuestLog.SetSelectedQuest(C_QuestLog.GetQuestIDForLogIndex(qn))
 			local qDesc, qObj = GetQuestLogQuestText()
 			local qId, qLevel = self:GetLogIdLevel (questID)
 			--Nx.prt ("%d",GetQuestLogQuestType(qn)) -- Seeing what quest type function returns
@@ -3655,7 +3671,7 @@ function Nx.Quest:RecordQuestsLog()
 				if isDaily == LE_QUEST_FREQUENCY_WEEKLY then
 					cur.TagShort = "#" .. cur.TagShort
 				end
-				cur.CanShare = GetQuestLogPushable()
+				cur.CanShare = C_QuestLog.IsPushableQuest(questID)
 				cur.Complete = isComplete			-- 1 is Done, nil not. Otherwise failed
 				cur.IsAutoComplete = GetQuestLogIsAutoComplete (qn)
 
@@ -3863,7 +3879,7 @@ function Nx.Quest:RecordQuestsLog()
 		self.QLastChanged = self:FindCurFromOld (lastChanged)
 	end
 
-	SelectQuestLogEntry (oldSel)
+	C_QuestLog.SetSelectedQuest (oldSel)
 
 --	Nx.prt ("CurQ %d", #curq)
 
@@ -3906,7 +3922,7 @@ end
 
 function Nx.Quest:IsDaily(checkID)
 	local isdaily = false
-	for qn = 1, GetNumQuestLogEntries() do
+	for qn = 1, C_QuestLog.GetNumQuestLogEntries() do
 		local title, level, groupCnt, isHeader, isCollapsed, isComplete, frequency, questID = GetQuestLogTitle (qn)
 		if questID == checkID then
 			if frequency == LE_QUEST_FREQUENCY_DAILY or frequency == LE_QUEST_FREQUENCY_WEEKLY then
@@ -4002,7 +4018,7 @@ function Nx.Quest:ScanBlizzQuestDataZone()
 		for n = 1, num do
 			local mapQuests = C_QuestLog.GetQuestsOnMap(mapId)
 			local id = mapQuests[n] and mapQuests[n].questID or -1
-			local qi = GetQuestLogIndexByID(id)
+			local qi = C_QuestLog.GetLogIndexForQuestID(id)
 --			Nx.prt("%s %s", id, qi)
 			if mapQuests[n] and qi and qi > 0 then
 				local objectives = C_QuestLog.GetQuestObjectives(id)
@@ -4352,7 +4368,7 @@ function Nx.Quest:FindNewQuest()
 --[[
 	if self.AcceptQId then	-- Auto accept quest triggered?
 
-		local qi = GetQuestLogIndexByID (self.AcceptQId)
+		local qi = C_QuestLog.GetLogIndexForQuestID (self.AcceptQId)
 		self.AcceptQId = nil
 
 		local title = self:ExtractTitle (GetQuestLogTitle (qi))
@@ -4371,7 +4387,7 @@ function Nx.Quest:FindNewQuest()
 		return
 	end
 
-	local cnt = GetNumQuestLogEntries()
+	local cnt = C_QuestLog.GetNumQuestLogEntries()
 
 --	Nx.prt ("FindNewQuest %d", cnt)
 
@@ -4662,7 +4678,7 @@ function Nx.Quest:TellPartyOfChanges()
 
 --PAIDS!
 
-	if self.RealQEntries ~= GetNumQuestLogEntries() then	-- Quests added or removed?
+	if self.RealQEntries ~= C_QuestLog.GetNumQuestLogEntries() then	-- Quests added or removed?
 		return
 	end
 
@@ -4738,7 +4754,7 @@ function Nx.Quest:GetPartTitle (quest, cur)
 end
 
 function Nx.Quest.GetQuestIndex(qId)
-	local qcnt = GetNumQuestLogEntries()
+	local qcnt = C_QuestLog.GetNumQuestLogEntries()
 
 	for i = 1, qcnt do
 		local _, _, _, _, _, _, _, qid = GetQuestLogTitle(i)
@@ -4952,7 +4968,7 @@ function Nx.Quest:Abandon (qId)
 --			QuestLog_SetSelection (qIndex)
 			
 			local text = format(ABANDON_QUEST_CONFIRM, title);
-			local items = GetAbandonQuestItems()
+			local items = C_QuestLog.GetAbandonQuestItems()
 			if items then
 				text = format(ABANDON_QUEST_CONFIRM_WITH_ITEMS, title, items);
 			end
@@ -4961,11 +4977,11 @@ function Nx.Quest:Abandon (qId)
 				text,
 				YES,
 				function(self)
-					SelectQuestLogEntry (qIndex)				
-					SetAbandonQuest()
+					C_QuestLog.SelectSelectedQuest (C_QuestLog.GetQuestIDForLogIndex(qIndex))				
+					C_QuestLog.SetAbandonQuest()
 					
 					-- native blizz
-					AbandonQuest();
+					C_QuestLog.AbandonQuest();
 					if ( QuestLogPopupDetailFrame:IsShown() ) then
 						HideUIPanel(QuestLogPopupDetailFrame);
 					end
@@ -6752,7 +6768,7 @@ function CarboniteQuest:OnQuestUpdate (event, ...)
 	elseif event == "QUEST_LOG_UPDATE" or event == "UNIT_QUEST_LOG_CHANGED" or event == "WORLD_QUEST_COMPLETED_BY_SPELL" then
 
 --		Nx.prtStack ("QUpdate")
---		Nx.prt ("#%d", GetNumQuestLogEntries())
+--		Nx.prt ("#%d", C_QuestLog.GetNumQuestLogEntries())
 
 		if self.LoggingIn then
 			Quest:AccessAllQuests()
@@ -6775,7 +6791,7 @@ end
 function Nx.Quest.List:LogUpdate()
 
 --	Nx.prtStack ("QUpdate")
---	Nx.prt ("#%d", GetNumQuestLogEntries())
+--	Nx.prt ("#%d", C_QuestLog.GetNumQuestLogEntries())
 
 	local Quest = Nx.Quest
 
@@ -6842,7 +6858,7 @@ function Nx.Quest.List:Update()
 
 	-- Title
 
-	local _, i = GetNumQuestLogEntries()
+	local _, i = C_QuestLog.GetNumQuestLogEntries()
 
 	local dailyStr = ""
 	local dailysDone = GetDailyQuestsCompleted()
@@ -6864,7 +6880,7 @@ function Nx.Quest.List:Update()
 	
 	if self.TabSelected == 1 then
 
-		local oldSel = GetQuestLogSelection()
+		local oldSel = C_QuestLog.GetSelectedQuest()
 
 		local header
 		local curq = Quest.CurQ
@@ -6880,7 +6896,7 @@ function Nx.Quest.List:Update()
 			local qn = Nx.Quest.GetQuestIndex(qId)
 			
 			if isActive and qn > 0 then
-				SelectQuestLogEntry (qn)
+				C_QuestLog.SetSelectedQuest (qId)
 			end
 
 			local onQ = 0
@@ -6888,7 +6904,7 @@ function Nx.Quest.List:Update()
 
 			if qn > 0 then
 				for n = 1, 4 do
-					if IsUnitOnQuest (qn, "party"..n) then
+					if C_QuestLog.IsUnitOnQuest ("party"..n, qId) then
 						if onQ > 0 then
 							onQStr = onQStr .. "," .. UnitName ("party" .. n)
 						else
@@ -8805,8 +8821,8 @@ function Nx.Quest.Watch:RemoveWatch (qId)
 		end
 
 		local qI = Nx.Quest.GetQuestIndex(qId)
-		if IsQuestWatched (qI) then	-- Blizz crap? Remove
-			RemoveQuestWatch (qI)
+		if QuestUtils_IsQuestWatched (qI) then	-- Blizz crap? Remove
+			C_QuestLog.RemoveQuestWatch (qI)
 		end
 	end
 end
@@ -9203,7 +9219,7 @@ function Nx.Quest.Watch:UpdateList()
 						end
 					end
 					else
-					local taskInfo = GetNumQuestLogEntries()
+					local taskInfo = C_QuestLog.GetNumQuestLogEntries()
 					if taskInfo > 0 then
 						for i=1,taskInfo do
 							local title, _, _, _, _, _, _, questId, _, _, _, _, isTask, _ = GetQuestLogTitle(i)
@@ -9318,7 +9334,7 @@ function Nx.Quest.Watch:UpdateList()
 
 					local cur = curq[n]
 					local qId = cur.QId
-					if not IsQuestTask(qId) then
+					if not C_QuestLog.IsQuestTask(qId) then
 						if 1 then
 							local level, isComplete = cur.Level, cur.CompleteMerge
 							local quest = cur.Q
@@ -9536,7 +9552,7 @@ function Nx.Quest.Watch:UpdateList()
 		if w < 127 then
 			self.Win:SetTitle ("")
 		else
-			local _, i = GetNumQuestLogEntries()
+			local _, i = C_QuestLog.GetNumQuestLogEntries()
 			self.Win:SetTitle (format ("          |cff40af40%d/25", i))
 		end
 
@@ -10102,8 +10118,8 @@ function Nx.Quest:TrackOnMap (qId, qObj, useEnd, target, skipSame)
 			if questID == qId then
 				BlizIndex = i
 			else
-				if (IsQuestWatched(i)) then
-					RemoveQuestWatch(i)
+				if (QuestUtils_IsQuestWatched(i)) then
+					C_QuestWatch.RemoveQuestWatch(i)
 				end
 			end
 		i = i + 1
@@ -10148,8 +10164,8 @@ function Nx.Quest:TrackOnMap (qId, qObj, useEnd, target, skipSame)
 		if track > 0 and zone then
 			if Nx.qdb.profile.QuestWatch.Sync then
 				if BlizIndex then
-					if not (IsQuestWatched(BlizIndex)) then
-						AddQuestWatch(BlizIndex)
+					if not (QuestUtils_IsQuestWatched(BlizIndex)) then
+						C_QuestLog.AddQuestWatch(BlizIndex)
 					end
 				end
 			end
@@ -10243,7 +10259,7 @@ function Nx.Quest:TrackOnMap (qId, qObj, useEnd, target, skipSame)
 
 					if tbits == 0 or (tid == qId * 100 + qObj) then
 						if Nx.qdb.profile.QuestWatch.Sync then
-							RemoveQuestWatch(BlizIndex)
+							C_QuestLog.RemoveQuestWatch(BlizIndex)
 						end
 						self.Map:ClearTargets()
 						if not InCombatLockdown() then
@@ -11431,6 +11447,7 @@ function Nx.Quest.WQList:GenWQTip(questId)
 	worldquesttip:ClearLines()
 	local title, factionID, capped = C_TaskQuest.GetQuestInfoByQuestID(questId)
 	local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, displayTimeLeft = GetQuestTagInfo(questId)
+	rarity = rarity or Enum.WorldQuestQuality.Common
 	local color = WORLD_QUEST_QUALITY_COLORS[rarity]
 	local style = TOOLTIP_QUEST_REWARDS_STYLE_DEFAULT
 	local tipdone = false
@@ -11613,7 +11630,7 @@ function Nx.Quest.WQList:UpdateDB(event, ...)
 end
 
 function Nx.Quest.WQList:CheckBounty(questId)
-	local bounties = GetQuestBountyInfoForMapID(1014)
+	local bounties = C_QuestLog.GetBountySetInfoForMapID(1014) or {}
 	local isbounty = false
 	for bountyIndex, bounty in ipairs(bounties) do
 		if IsQuestCriteriaForBounty(questId, bounty.questID) then
