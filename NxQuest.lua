@@ -8042,7 +8042,9 @@ function Nx.Quest:UpdateIcons (map)
 							 end
 						end)
 
-						QuestUtil.SetupWorldQuestButton(f, questtype, rarity, elite, tradeskill, info.inProgress, selected, nil, isSpellTarget)
+						local tagInfo = C_QuestLog.GetQuestTagInfo(info.questId)
+						local isEffectivelyTracked = watchType == Enum.QuestWatchType.Manual or (watchType == Enum.QuestWatchType.Automatic and C_SuperTrack.GetSuperTrackedQuestID() == info.questId)
+						QuestUtil.SetupWorldQuestButton(f, tagInfo, info.inProgress, selected, isCriteria, isSpellTarget, isEffectivelyTracked)
 
 						f.texture:Hide()
 
