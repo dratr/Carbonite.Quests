@@ -2785,8 +2785,6 @@ function Nx.Quest:Init()
 			Nx.Quest:RecordQuestAcceptOrFinish()
 		end
 		
-		table.insert(Nx.Quest.AcceptPool, GetQuestID())
-		
 		--QuestFrameDetailPanel_OnShow()
 		
 		local auto = Nx.qdb.profile.Quest.AutoAccept
@@ -3680,7 +3678,8 @@ function Nx.Quest:RecordQuestsLog()
 				end
 				cur.CanShare = C_QuestLog.IsPushableQuest(questID)
 				cur.Complete = isComplete			-- 1 is Done, nil not. Otherwise failed
-				cur.IsAutoComplete = GetQuestLogIsAutoComplete (qn)
+				local qInfo = C_QuestLog.GetInfo(qn)
+				cur.IsAutoComplete = qInfo.isAutoComplete
 
 				local left = GetQuestLogTimeLeft()
 				if left then
@@ -4984,7 +4983,7 @@ function Nx.Quest:Abandon (qId)
 				text,
 				YES,
 				function(self)
-					C_QuestLog.SelectSelectedQuest (C_QuestLog.GetQuestIDForLogIndex(qIndex))				
+					C_QuestLog.SetSelectedQuest (C_QuestLog.GetQuestIDForLogIndex(qIndex))				
 					C_QuestLog.SetAbandonQuest()
 					
 					-- native blizz
@@ -7070,7 +7069,7 @@ function Nx.Quest.List:Update()
 			end
 		end
 
-		SelectQuestLogEntry (oldSel)
+		C_QuestLog.SetSelectedQuest (oldSel)
 
 	end
 
@@ -8179,8 +8178,7 @@ function Nx.Quest:UpdateQuestDetailsTimer()
 
 	--	Nx.prt ("UpdateQuestDetails")
 	if NxQuestD.questID then
-		local qidx = Nx.Quest.GetQuestIndex(NxQuestD.questID)
-		SelectQuestLogEntry(qidx)
+		C_QuestLog.SetSelectedQuest(NxQuestD.questID)
 	end
 	
 	QuestInfo_Display (NX_QUEST_TEMPLATE_LOG, NXQuestLogDetailScrollChildFrame, nil, nil, "Carb")
