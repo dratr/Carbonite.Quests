@@ -8023,16 +8023,17 @@ function Nx.Quest:UpdateIcons (map)
 							map:SetTargetAtStr (format("%s, %s", x, y))
 							if not InCombatLockdown() and self.worldQuest then
 							  if ( not ChatEdit_TryInsertQuestLinkForQuestID(self.questID) ) then
-								PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);						 
+								PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+								local watchType = C_QuestLog.GetQuestWatchType(self.questID)						 
 								if IsShiftKeyDown() then
-								  if IsWorldQuestHardWatched(self.questID) or (IsWorldQuestWatched(self.questID) and C_SuperTrack.GetSuperTrackedQuestID() == self.questID) then
+								  if watchType == Enum.QuestWatchType.Manual or (watchType == Enum.QuestWatchType.Automatic and C_SuperTrack.GetSuperTrackedQuestID() == self.questID) then
 									BonusObjectiveTracker_UntrackWorldQuest(self.questID);
 								  else
 									BonusObjectiveTracker_TrackWorldQuest(self.questID, true);
 								  end
 								else
-								  if IsWorldQuestHardWatched(self.questID) then
-									SetSuperTrackedQuestID(self.questID);
+								  if watchType == Enum.QuestWatchType.Manual then
+									C_SuperTrack.SetSuperTrackedQuestID(self.questID);
 								  else
 									BonusObjectiveTracker_TrackWorldQuest(self.questID);
 								  end
