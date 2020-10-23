@@ -5711,13 +5711,12 @@ function Nx.Quest.List:Open()
 	f:SetMovable (true)
 	f:EnableMouse (true)
 	f:SetFrameStrata ("MEDIUM")
-	local t = f:CreateTexture()
+	local t = f.bg
 	if Nx.qdb.profile.Quest.ScrollIMG then
 		t:SetTexture ("Interface\\QuestFrame\\QuestBG", true, true)
 	else
 		t:SetColorTexture(Nx.Util_str2rgba(Nx.qdb.profile.Quest.DetailBC))
 	end
-	t:SetAllPoints (f)
 	t:SetTexCoord(0, .585, 0.02, .655)
 	f.texture = t
 
