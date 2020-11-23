@@ -4021,22 +4021,24 @@ function Nx.Quest:ScanBlizzQuestDataZone()
 		if not mapId then
 			return
 		end
-		for n = 1, num do
 			local mapQuests = C_QuestLog.GetQuestsOnMap(mapId)
+		for n = 1, num do
 			local id = mapQuests[n] and mapQuests[n].questID or -1
+			-- Only look at map ids that are primary for the quest
+			local primaryMapId = GetQuestUiMapID(id, true)
 			local qi = C_QuestLog.GetLogIndexForQuestID(id)
 --			Nx.prt("%s %s", id, qi)
-			if mapQuests[n] and qi and qi > 0 then
+			if primaryMapId and mapId == primaryMapId and mapQuests[n] and qi and qi > 0 then
 				local objectives = C_QuestLog.GetQuestObjectives(id)
 				local title, level, groupCnt, isHeader, isCollapsed, isComplete, _, questID = GetQuestLogTitle (qi)
 				local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = GetQuestTagInfo(qi)
 				local lbCnt = objectives and #objectives or 0; --GetNumQuestLeaderBoards (qi)
 				local qObjl = 0;
+				local quest = Nx.Quests[id] or {}
+				local patch = Nx.Quests[-id] or 0
 				if quest and quest["Objectives"] then
 					qObjl = #quest["Objectives"]
 				end
-				local quest = Nx.Quests[id] or {}
-				local patch = Nx.Quests[-id] or 0
 				local needEnd = isComplete and not quest["End"]
 				local fac = UnitFactionGroup ("player") == "Horde" and 1 or 2
 				
@@ -4067,10 +4069,10 @@ function Nx.Quest:ScanBlizzQuestDataZone()
 
 							local s = title
 							for i = 1, lbCnt do
-								if not quest["Objectives"][i] then
+								--if not quest["Objectives"][i] then
 									local obj = format ("%s|%s|32|%f|%f|6|6", objectives[i] and objectives[i].text or "nil", mapId, x, y)
 									quest["Objectives"][i] = {obj}
-								end
+								--end
 							end
 						end
 					end
@@ -4983,7 +4985,7 @@ function Nx.Quest:Abandon (qId)
 				text,
 				YES,
 				function(self)
-					C_QuestLog.SetSelectedQuest (C_QuestLog.GetQuestIDForLogIndex(qIndex))				
+					C_QuestLog.SetSelectedQuest (qId)				
 					C_QuestLog.SetAbandonQuest()
 					
 					-- native blizz
@@ -5502,7 +5504,7 @@ function Nx.Quest.List:Open()
 	win:SetUser (self, self.OnWin)
 	win:RegisterHide ()
 	CarboniteQuest:RegisterEvent ("PLAYER_LOGIN", "OnQuestUpdate")
-	CarboniteQuest:RegisterEvent ("UPDATE_FACTION", "OnQuestUpdate")
+--	CarboniteQuest:RegisterEvent ("UPDATE_FACTION", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("GARRISON_MISSION_COMPLETE_RESPONSE", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("WORLD_QUEST_COMPLETED_BY_SPELL", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("UNIT_QUEST_LOG_CHANGED", "OnQuestUpdate")
@@ -5517,7 +5519,7 @@ function Nx.Quest.List:Open()
 	CarboniteQuest:RegisterEvent ("WORLD_STATE_TIMER_START", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("WORLD_STATE_TIMER_STOP", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("QUEST_POI_UPDATE", "OnQuestUpdate")
-	CarboniteQuest:RegisterEvent ("CRITERIA_UPDATE", "OnQuestUpdate")
+--	CarboniteQuest:RegisterEvent ("CRITERIA_UPDATE", "OnQuestUpdate")
 	CarboniteQuest:RegisterEvent ("CHAT_MSG_COMBAT_FACTION_CHANGE", "OnChat_msg_combat_faction_change")
 	CarboniteQuest:RegisterEvent ("CHAT_MSG_RAID_BOSS_WHISPER", "OnChat_msg_raid_boss_whisper")
 	-- Filter Edit Box
