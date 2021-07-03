@@ -7652,6 +7652,7 @@ end
 -- Update map icons (called by map)
 -------------------------------------------------------------------------------
 
+local taskInfoCache = nil
 function Nx.Quest:UpdateIcons (map)
 	if not Nx.QInit then
 		return
@@ -7999,7 +8000,10 @@ function Nx.Quest:UpdateIcons (map)
 	local taskIconIndex = 1
 	local activeWQ = {}
 	if Map.UpdateMapID ~= 9000 then
-		local taskInfo = C_TaskQuest.GetQuestsForPlayerByMapID(Map.UpdateMapID);
+		if map.Tick % 40 == 0 then
+			taskInfoCache = C_TaskQuest.GetQuestsForPlayerByMapID(Map.UpdateMapID);
+		end
+		local taskInfo = taskInfoCache
 		if taskInfo and Nx.db.char.Map.ShowWorldQuest then
 			for i=1,#taskInfo do				
 				local info = taskInfo[i]
