@@ -8067,7 +8067,7 @@ function Nx.Quest:UpdateIcons (map)
 						end]]--
 					end
 				else
-					if not worldquestdb[questId] and not C_QuestLog.IsOnQuest(questId) and not taskInfo[i].isDaily then
+					if not worldquestdb[questId] and not C_QuestLog.IsOnQuest(questId) then
 						taskIconIndex = taskIconIndex + 1
 						local x,y = taskInfo[i].x * 100, taskInfo[i].y * 100
 						local f = map:GetIcon (3)
@@ -8083,10 +8083,15 @@ function Nx.Quest:UpdateIcons (map)
 							end
 						end
 
-						f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
 						f.texture:SetTexture ("Interface\\Minimap\\ObjectIconsAtlas")
 						map:ClipFrameZ (f, x, y, 16, 16, 0)
-						f.texture:SetTexCoord (GetObjectIconTextureCoords(4734))
+						if taskInfo[i].isDaily then
+							f.NxTip = "|cffffd100Daily:\n" .. title .. objTxt
+							f.texture:SetTexCoord (GetObjectIconTextureCoords(4713))
+						else
+							f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
+							f.texture:SetTexCoord (GetObjectIconTextureCoords(4734))
+						end
 					end
 				end
 			end
