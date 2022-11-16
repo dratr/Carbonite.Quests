@@ -1,6 +1,6 @@
-## Interface: 90002
-## Title: Carbonite Quest 9.0.2
-## Version: 9.0.2
+## Interface: 100000
+## Title: Carbonite Quest 10.0
+## Version: @project-version@
 ## Author: No One
 ## Notes: Released Under GPL
 ## DefaultState: Enabled

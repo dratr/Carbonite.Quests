@@ -2807,7 +2807,7 @@ function Nx.Quest:Init()
 
 	local ttHooks = {
 		"SetAction", "SetBagItem", "SetGuildBankItem", "SetHyperlink", "SetInboxItem", "SetInventoryItem", "SetLootItem",
-		"SetLootRollItem", "SetMerchantItem", "SetRecipeReagentItem","SetRecipeResultItem","SetQuestItem", "SetQuestLogItem", "SetTradeTargetItem",
+		"SetLootRollItem", "SetMerchantItem", "SetRecipeReagentItem","SetQuestItem", "SetQuestLogItem", "SetTradeTargetItem",
 	}
 
 	for k, name in ipairs (ttHooks) do
@@ -5499,7 +5499,7 @@ function Nx.Quest.List:Open()
 	tinsert (UISpecialFrames, win.Frm:GetName())
 
 	win.Frm:SetToplevel (true)
-	win.Frm:SetMinResize (250, 120)
+	win.Frm:SetResizeBounds (250, 120)
 
 	win:SetUser (self, self.OnWin)
 	win:RegisterHide ()
@@ -8087,10 +8087,10 @@ function Nx.Quest:UpdateIcons (map)
 						map:ClipFrameZ (f, x, y, 16, 16, 0)
 						if taskInfo[i].isDaily then
 							f.NxTip = "|cffffd100Daily:\n" .. title .. objTxt
-							f.texture:SetTexCoord (GetObjectIconTextureCoords(4713))
+							f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4713))
 						else
 							f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
-							f.texture:SetTexCoord (GetObjectIconTextureCoords(4734))
+							f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4734))
 						end
 					end
 				end
@@ -8592,7 +8592,7 @@ function Nx.Quest.Watch:Open()
 --	self:SetFont()
 
 	if fixedSize then
-		list:SetMinSize (124, 1)		-- Sets the window minimum
+		list:SetResizeBounds (124, 1)	-- Sets the window minimum
 		list.Frm:EnableMouse (false)
 	end
 
@@ -11381,7 +11381,7 @@ function Nx.Quest.WQList:Open()
 	Nx.List:SetCreateFont ("QuestWatch.WatchFont", 12)
 	local list = Nx.List:Create (false, 2, -2, 100, 12 * 3, win.Frm, true, true)
 	self.List = list
-	list:SetMinSize (200, 20)
+	list.Frm:SetResizeBounds (200, 20)
 	list.Frm:EnableMouse (false)	
 	list:ColumnAdd ("", 1, 14)
 	list:ColumnAdd ("Name", 2, 120)
