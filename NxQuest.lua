@@ -8054,7 +8054,12 @@ function Nx.Quest:UpdateIcons (map)
 
 						local tagInfo = C_QuestLog.GetQuestTagInfo(info.questId)
 						local isEffectivelyTracked = watchType == Enum.QuestWatchType.Manual or (watchType == Enum.QuestWatchType.Automatic and C_SuperTrack.GetSuperTrackedQuestID() == info.questId)
-						QuestUtil.SetupWorldQuestButton(f, tagInfo, info.inProgress, selected, isCriteria, isSpellTarget, isEffectivelyTracked)
+						-- Passing tagInfo twice is intentional due to buggy blizzard
+						-- change to innards of QuestUtil.SetupWorldQuestButton in 11.0 where
+						-- "inProgress" argument (arg 3) is erroneously passed as tagInfo to
+						-- internal function. Luckily inProgress is not used otherwise in the
+						-- implementation
+						QuestUtil.SetupWorldQuestButton(f, tagInfo, tagInfo, selected, isCriteria, isSpellTarget, isEffectivelyTracked)
 
 						f.texture:Hide()
 
