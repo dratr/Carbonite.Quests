@@ -8007,7 +8007,7 @@ function Nx.Quest:UpdateIcons (map)
 		if taskInfo and Nx.db.char.Map.ShowWorldQuest then
 			for i=1,#taskInfo do				
 				local info = taskInfo[i]
-				local questId = taskInfo[i].questId				
+				local questId = taskInfo[i].questID				
 				local title, faction = C_TaskQuest.GetQuestInfoByQuestID(questId)
 				if QuestUtils_IsQuestWorldQuest (questId) and (not worldquestdb[questId] or (worldquestdb[questId] and not worldquestdb[questId].Filtered)) then
 					activeWQ[questId] = true
@@ -8021,12 +8021,12 @@ function Nx.Quest:UpdateIcons (map)
 
 						map:ClipFrameZ (f, x, y, 24, 24, 0)
 
-						local selected = info.questId == C_SuperTrack.GetSuperTrackedQuestID();
+						local selected = info.questID == C_SuperTrack.GetSuperTrackedQuestID();
 
-						local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget(info.questId);
+						local isSpellTarget = SpellCanTargetQuest() and IsQuestIDValidSpellTarget(info.questID);
 
 						f.worldQuest = true;
-						f.questID = info.questId
+						f.questID = info.questID
 						f.numObjectives = info.numObjectives;
 						f.Texture:SetDrawLayer("OVERLAY");
 						f:SetScript("OnClick", function (self, button)
@@ -8052,13 +8052,8 @@ function Nx.Quest:UpdateIcons (map)
 							 end
 						end)
 
-						local tagInfo = C_QuestLog.GetQuestTagInfo(info.questId)
-						local isEffectivelyTracked = watchType == Enum.QuestWatchType.Manual or (watchType == Enum.QuestWatchType.Automatic and C_SuperTrack.GetSuperTrackedQuestID() == info.questId)
-						-- Passing tagInfo twice is intentional due to buggy blizzard
-						-- change to innards of QuestUtil.SetupWorldQuestButton in 11.0 where
-						-- "inProgress" argument (arg 3) is erroneously passed as tagInfo to
-						-- internal function. Luckily inProgress is not used otherwise in the
-						-- implementation
+						local tagInfo = C_QuestLog.GetQuestTagInfo(info.questID)
+						local isEffectivelyTracked = watchType == Enum.QuestWatchType.Manual or (watchType == Enum.QuestWatchType.Automatic and C_SuperTrack.GetSuperTrackedQuestID() == info.questID)
 						QuestUtil.SetupWorldQuestButton(f, tagInfo, tagInfo, selected, isCriteria, isSpellTarget, isEffectivelyTracked)
 
 						f.texture:Hide()
@@ -9195,7 +9190,7 @@ function Nx.Quest.Watch:UpdateList()
 					local taskInfo = C_TaskQuest.GetQuestsForPlayerByMapID(map.UpdateMapID);
 					if taskInfo then
 						for i=1,#taskInfo do
-							local questId = taskInfo[i].questId;
+							local questId = taskInfo[i].questID;
 							local inArea, onMap, numObjectives = GetTaskInfo(questId)
 							tasks[questId] = true
 							if inArea then
@@ -9211,7 +9206,7 @@ function Nx.Quest.Watch:UpdateList()
 								--Nx.prt("====%s: %s, %s", title, x, y)
 								if numObjectives and numObjectives > 0 then
 									for j=1,numObjectives do
-										local text, objectiveType, finished = GetQuestObjectiveInfo (taskInfo[i].questId, j, false)
+										local text, objectiveType, finished = GetQuestObjectiveInfo (taskInfo[i].questID, j, false)
 										if objectiveType == "progressbar" then
 											list:ItemAdd({ 0, 0, 0 })
 											list:ItemSetOffset (16, -1)
