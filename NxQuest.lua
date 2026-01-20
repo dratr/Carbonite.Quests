@@ -3146,7 +3146,6 @@ function Nx.Quest:LoadQuestDB()
 		Nx.ModQuests:Clear12()
 	end
 
-	local qStep = 100 / maxQLoad
 	C_Timer.NewTicker(1, function(self)
 		if (Nx.Initialized == true and numQLoad == 0) or self._remainingIterations == 0 then
 			self:Cancel()
@@ -8001,7 +8000,7 @@ function Nx.Quest:UpdateIcons (map)
 	local activeWQ = {}
 	if Map.UpdateMapID ~= 9000 then
 		if map.Tick % 40 == 0 then
-			taskInfoCache = C_TaskQuest.GetQuestsForPlayerByMapID(Map.UpdateMapID);
+			taskInfoCache = C_TaskQuest.GetQuestsOnMap(Map.UpdateMapID);
 		end
 		local taskInfo = taskInfoCache
 		if taskInfo and Nx.db.char.Map.ShowWorldQuest then

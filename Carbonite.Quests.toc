@@ -1,4 +1,4 @@
-## Interface: 110100
+## Interface: 110005,120000
 ## Title: Carbonite Quest 10.0
 ## Version: @project-version@
 ## Author: No One
