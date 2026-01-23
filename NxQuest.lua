@@ -72,7 +72,6 @@ local defaults = {
 			QuestFontSize = 10,
 			QuestFontSpacing = 1,
 			Enable = true,
-			AddTooltip = true,
 			AutoAccept = false,
 			AutoTurnIn = false,
 			AutoTurnInAC = false,
@@ -374,19 +373,6 @@ local function QuestOptions ()
 							order = 13,
 							type = "description",
 							name = L["Quest Options"],
-						},
-						qtool = {
-							order = 14,
-							type = "toggle",
-							width = "full",
-							name = L["Show Quest Tooltips"],
-							desc = L["When enabled, adds quest information to tooltips"],
-							get = function()
-								return Nx.qdb.profile.Quest.AddTooltip
-							end,
-							set = function()
-								Nx.qdb.profile.Quest.AddTooltip = not Nx.qdb.profile.Quest.AddTooltip
-							end,
 						},
 						qparty = {
 							order = 15,
@@ -2805,39 +2791,6 @@ function Nx.Quest:Init()
 
 	-- Hook tooltip
 
-	local ttHooks = {
-		"SetAction", "SetBagItem", "SetGuildBankItem", "SetHyperlink", "SetInboxItem", "SetInventoryItem", "SetLootItem",
-		"SetLootRollItem", "SetMerchantItem", "SetRecipeReagentItem","SetQuestItem", "SetQuestLogItem", "SetTradeTargetItem",
-	}
-
-	for k, name in ipairs (ttHooks) do
-			hooksecurefunc (GameTooltip, name, Nx.Quest.TooltipHook)
-	end
-
-	local unitNames = {	-- 5 letter and shorter words are already blocked
-		"Hunter", "Paladin", "Priest",
-		"Shaman", "Warlock", "Warrior", "Deathknight", "Demonhunter"
-	}
-
-	self.TTIgnore = {
-		["Attack"] = true,
-		["Lumber Mill"] = true,
-		["Stables"] = true,
-		["Blacksmith"] = true,
-		["Gold Mine"] = true,
-	}
-
-	self.TTIgnore[UnitName ("player")] = true
-
-	for _, v in pairs (unitNames) do
-		self.TTIgnore[v] = true
-	end
-
-	self.TTChange = {
-		["Bloodberry Bush"] = "Bloodberries",
-		["Erratic Sentry"] = "Erratic Sentries",
-	}
-	
 	self.QInit = true
 	Nx.Quest.OldToggleQuestLog = ToggleQuestLog
 	function ToggleQuestLog(...)
@@ -5300,172 +5253,6 @@ function CarboniteQuest:OnChat_msg_raid_boss_whisper (event, arg1)
 				self.Map:SetTargetXY (4011, x, y, s)
 			end
 		end
-	end
-end
-
--------------------------------------------------------------------------------
--------------------------------------------------------------------------------
--- Quest tooltips
--------------------------------------------------------------------------------
-
-function	Nx.Quest.TooltipHook()
-
---	Nx.prt ("TooltipHook")
-
-	Nx.Quest:TooltipProcess()
-end
-
-function	Nx.Quest:TooltipProcess (stripColor)
-
-	local tipStr = GameTooltipTextLeft1:GetText()
-	if not tipStr then		-- Happens in WotLK on empty slots
-		return
-	end
-
---	Nx.prt ("TooltipProcess %s", tipStr)
-
-	Nx.TooltipLastDiffText = tipStr
-
---	local sTime = GetTime()
-
-	local show = Nx.Quest:TooltipProcess2 (stripColor, tipStr)
-
-	if show then
-		GameTooltip:Show()	-- Adjusts size
-	end
-
---	Nx.prt ("TTProcess %f secs", GetTime() - sTime)
-
-	Nx.TooltipLastDiffNumLines = GameTooltip:NumLines()	-- Stop multiple checks
-end
-
-function Nx.Quest:TooltipProcess2 (stripColor, tipStr)
-	if not Nx.QInit then
-		return
-	end
-	if not Nx.qdb.profile.Quest.AddToolTip then
-		return
-	end
-
-	local tip = GameTooltip
-
-	-- Check if already added
-
-	local textName = "GameTooltipTextLeft"
-	local questStr = format (L["|cffffffffQ%suest:"], Nx.TXTBLUE)
-
-	for n = 2, tip:NumLines() do
-		local s = _G[textName .. n]:GetText()
-		if s then
-
-			local s1 = strfind (s, questStr)
-			if s1 then
---				Nx.prt ("TTM #%s", GameTooltip:NumLines())
-				return
-			end
-			if strsub (s, 1, 3) == " - " then	-- Blizz added quest info?
-
-				local fstr = _G[textName .. (n - 1)]
-				local qTitle = fstr:GetText()
-
-				local i, cur = self:FindCur (qTitle)
-				if cur then
-					local color = self:GetDifficultyColor (cur.Level)
-					color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
-					fstr:SetText (format ("%s %s%d %s", questStr, color, cur.Level, cur.Title))
-				end
-
-				tip:AddLine (" ")		-- Add blank or same tip will not add info again
-
-				return true;
-			end
-		end
-	end
-
-	-- Scan tooltip
-
-	if stripColor then
-		tipStr = gsub (tipStr, "|c%x%x%x%x%x%x%x%x", "")
-	end
-
-	if tipStr and #tipStr > 5 and #tipStr < 50 and not self.TTIgnore[tipStr] then
-
-		tipStr = self.TTChange[tipStr] or tipStr
-		local tipStrLower = strlower (tipStr)
-
-		local curq = self.CurQ
-
-		for curi, cur in ipairs (curq) do
-
-			if not cur.Goto then		-- Skip Goto and Party quests
-
-				local s1 = strfind (cur.ObjText, tipStr, 1, true)
-				if not s1 then
-					s1 = strfind (cur.DescText, tipStr, 1, true)
-				end
-				if not s1 then
-					s1 = strfind (cur.ObjText, tipStrLower, 1, true)
-				end
-				if not s1 then
-					s1 = strfind (cur.DescText, tipStrLower, 1, true)
-				end
-				if not s1 then
-					for n = 1, cur.LBCnt do
-						if cur[n] then	-- V4
-							s1 = strfind (cur[n], tipStr)
-							if s1 then
-								break
-							end
-						end
-					end
-				end
-
-				if s1 then
-
-					local color = self:GetDifficultyColor (cur.Level)
-					color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
-
-					tip:AddLine (format ("%s %s%d %s", questStr, color, cur.Level, cur.Title))
-
-					for n = 1, cur.LBCnt do
-						if strfind (cur[n], tipStr) then
-							local color, s1 = self:CalcPercentColor (cur[n], cur[n + 100])
-							if s1 then
-								local oName = strsub (cur[n], 1, s1 - 1)
-								tip:AddLine (format ("    |cffb0b0b0%s%s%s", oName, color, strsub (cur[n], s1)))
-							else
-								tip:AddLine (format ("    %s%s", color, cur[n]))
-							end
-						end
-					end
-
---					Nx.prt ("TTProcess %s #%s", tipStr, tip:NumLines())
-
-					return true;
-				end
-			end
-		end
-	end
-end
-
--------------------------------------------------------------------------------
-
-function Nx.Quest:GetDifficultyColor (level)
-
-	return GetQuestDifficultyColor (level)
-end
-
--------------------------------------------------------------------------------
-
-function Nx.Quest:CalcPercentColor (desc, done)
-
-	local s1, _, i, total = strfind (desc, "(%d+)/(%d+)")
-
-	if done then
-		return self.PerColors[9], s1
-	else
-		i = s1 and floor (tonumber (i) / tonumber (total) * 8.99) + 1 or 1
-		return self.PerColors[i], s1
 	end
 end
 
@@ -9395,7 +9182,7 @@ function Nx.Quest.Watch:UpdateList()
 							local color = isComplete and compColor or incompColor
 							local lvlStr = ""
 							if level > 0 then
-								local col = Quest:GetDifficultyColor (level)
+								local col = GetQuestDifficultyColor (level)
 								lvlStr = format ("|cff%02x%02x%02x%2d%s ", col.r * 255, col.g * 255, col.b * 255, level, cur.TagShort)
 							end
 							local nameStr = format ("%s%s%s", lvlStr, color, cur.Title)
