@@ -6716,7 +6716,7 @@ function Nx.Quest.List:Update()
 					lvlStr = format ("|cffd0d0d0%2d", level)
 				end
 
-				local color = Quest:GetDifficultyColor (level)
+				local color = GetQuestDifficultyColor (level)
 				color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
 				local nameStr = format ("%s %s%s", lvlStr, color, title)
@@ -6966,7 +6966,7 @@ function Nx.Quest.List:Update()
 						haveStr = "|cffe0e0e0+ "
 					end
 
-					local color = Quest:GetDifficultyColor (lvl)
+					local color = GetQuestDifficultyColor (lvl)
 					color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
 					t.Desc = format ("%s %s%s%s", lvlStr, haveStr, color, title)
@@ -7172,7 +7172,7 @@ function Nx.Quest.List:Update()
 						haveStr = "|cffe0e0e0+ "
 					end
 
-					local color = Quest:GetDifficultyColor (lvl)
+					local color = GetQuestDifficultyColor (lvl)
 					color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
 					local str = format ("%s %s%s%s", lvlStr, haveStr, color, title)
