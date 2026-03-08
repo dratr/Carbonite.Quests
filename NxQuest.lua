@@ -7383,58 +7383,6 @@ function Nx.Quest.List:CheckShow (mapId, index)
 end
 
 -------------------------------------------------------------------------------
--- CLONED BLIZZARD TEXTURE FUNCTIONS
--------------------------------------------------------------------------------
-
-local function ApplyTextureToPOI(texture, width, height)
-	texture:SetTexCoord(0, 1, 0, 1);
-	texture:ClearAllPoints();
-	texture:SetPoint("CENTER", texture:GetParent());
-	texture:SetSize(width or 32, height or 32);
-end
-
-local function ApplyAtlasTexturesToPOI(button, normal, pushed, highlight, width, height)
-	button:SetSize(20, 20);
-	button:SetNormalAtlas(normal);
-	ApplyTextureToPOI(button:GetNormalTexture(), width, height);
-
-	button:SetPushedAtlas(pushed);
-	ApplyTextureToPOI(button:GetPushedTexture(), width, height);
-
-	button:SetHighlightAtlas(highlight);
-	ApplyTextureToPOI(button:GetHighlightTexture(), width, height);
-
-	if button.SelectedGlow then
-		button.SelectedGlow:SetAtlas(pushed);
-		ApplyTextureToPOI(button.SelectedGlow, width, height);
-	end
-end
-
-local function ApplyStandardTexturesToPOI(button, selected)
-	button:SetSize(20, 20);
-	button:SetNormalTexture("Interface/WorldMap/UI-QuestPoi-NumberIcons");
-	ApplyTextureToPOI(button:GetNormalTexture());
-	if selected then
-		button:GetNormalTexture():SetTexCoord(0.500, 0.625, 0.375, 0.5);
-	else
-		button:GetNormalTexture():SetTexCoord(0.875, 1, 0.375, 0.5);
-	end
-
-
-	button:SetPushedTexture("Interface/WorldMap/UI-QuestPoi-NumberIcons");
-	ApplyTextureToPOI(button:GetPushedTexture());
-	if selected then
-		button:GetPushedTexture():SetTexCoord(0.375, 0.500, 0.375, 0.5);
-	else
-		button:GetPushedTexture():SetTexCoord(0.750, 0.875, 0.375, 0.5);
-	end
-
-	button:SetHighlightTexture("Interface/WorldMap/UI-QuestPoi-NumberIcons");
-	ApplyTextureToPOI(button:GetHighlightTexture());
-	button:GetHighlightTexture():SetTexCoord(0.625, 0.750, 0.875, 1);
-end
-
--------------------------------------------------------------------------------
 -- Update map icons (called by map)
 -------------------------------------------------------------------------------
 
@@ -7871,12 +7819,14 @@ function Nx.Quest:UpdateIcons (map)
 
 						f.texture:SetTexture ("Interface\\Minimap\\ObjectIconsAtlas")
 						map:ClipFrameZ (f, x, y, 16, 16, 0)
-						if taskInfo[i].isDaily then
-							f.NxTip = "|cffffd100Daily:\n" .. title .. objTxt
-							f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4713))
-						else
-							f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
-							f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4734))
+						if title then
+							if taskInfo[i].isDaily then
+								f.NxTip = "|cffffd100Daily:\n" .. title .. objTxt
+								f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4713))
+							else
+								f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
+								f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4734))
+							end
 						end
 					end
 				end
