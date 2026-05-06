@@ -1872,24 +1872,6 @@ local function QuestOptions ()
 								Nx.qdb.profile.Quest.Load12 = not Nx.qdb.profile.Quest.Load12
 							end,
 						},
-						spacer3 = {
-							order = 19,
-							type = "description",
-							name = " ",
-						},
-						gather = {		-- Change to qgather perhaps?
-							order = 20,
-							type = "toggle",
-							width = "full",
-							name = L["Quests Data Gathering"],
-							desc = L["Gathers quests data"],
-							get = function()
-								return Nx.db.profile.General.CaptureEnable
-							end,
-							set = function()
-								Nx.db.profile.General.CaptureEnable = not Nx.db.profile.General.CaptureEnable
-							end,
-						},
 						spacer4 = {
 							order = 21,
 							type = "description",
@@ -2755,9 +2737,6 @@ function Nx.Quest:Init()
 
 	-- Hook quests
 
-	self.BlizzAcceptQuest = AcceptQuest
-	AcceptQuest = self.AcceptQuest
-
 --[[	self.BlizzCompleteQuest = CompleteQuest
 	CompleteQuest = self.CompleteQuest ]]--
 
@@ -2768,7 +2747,6 @@ function Nx.Quest:Init()
 --		Nx.prt ("QAccept")
 		if QuestGetAutoAccept() then
 --			Nx.prt ("auto")
-			Nx.Quest:RecordQuestAcceptOrFinish()
 		end
 		
 		--QuestFrameDetailPanel_OnShow()
@@ -3213,16 +3191,6 @@ function Nx.Quest:Menu_OnWatch (item)
 end
 
 -------------------------------------------------------------------------------
--- Track quest acception
--------------------------------------------------------------------------------
-
-function Nx.Quest.AcceptQuest (...)
-
-	Nx.Quest:RecordQuestAcceptOrFinish()
-	Nx.Quest.BlizzAcceptQuest (...)
-end
-
--------------------------------------------------------------------------------
 --
 -------------------------------------------------------------------------------
 
@@ -3269,9 +3237,6 @@ function Nx.Quest:FinishQuest()
 
 	local id = qId > 0 and qId or cur.Title
 	Nx.Quest:SetQuest (id, "C", time())
-
-	self:RecordQuestAcceptOrFinish()
-	self:Capture (i, -1)
 
 --	Nx.prt ("FinishQuest #%s (%s) %s", i, id, cur.Title)
 
@@ -3509,10 +3474,6 @@ function Nx.Quest:RecordQuestsLog()
 								if s1 then
 	--								Nx.prt ("%s %s", i, total)
 									newCnt = tonumber (newCnt)
-								end
-
-								if done or (oldCnt and newCnt and newCnt > oldCnt) then
-									self:Capture (curi, n)
 								end
 
 								lastChanged = cur
@@ -4371,45 +4332,6 @@ end
 
 --------
 
-function Nx.Quest:RecordQuestAcceptOrFinish()
-
-	local giver = UnitName ("npc") or "?"
-
-	local guid = UnitGUID ("npc")
-	if guid then
-
-	local typ, zero, server_id, instance_id, zone_uid, npc_id, spawn_uid = strsplit ("-", guid)
-		if typ == "Player" then
-			giver = "p"
-		elseif typ == "GameObject" then
-			giver = format ("%s#o%x", giver, npc_id)
-		elseif typ == "Creature" then		-- NPC
-			giver = format ("%s#%x", giver, npc_id)
-		end
-	end
-
-	self.AcceptGiver = giver
-
-	local qname = GetTitleText()		-- Also works for auto accept
-	self.AcceptQName = qname
-	local id = Nx.Map:GetRealMapId()
-	self.AcceptAId = id or 0
-	self.AcceptDLvl = 0
-
-	if Nx.Map:GetCurrentMapId() == id then
-		self.AcceptDLvl = Nx.Map:GetCurrentMapDungeonLevel()
-	end
-
-	local map = Nx.Map:GetMap (1)
-	self.AcceptX = map.PlyrRZX
-	self.AcceptY = map.PlyrRZY
-
---	Nx.prt ("AcceptQuest (%s) (%s) %s,%s", giver, qname, self.AcceptAId, self.AcceptDLvl)
-
-end
-
--------------------------------------------------------------------------------
-
 function CarboniteQuest:OnChat_msg_combat_faction_change (event, arg1)
 
 	local self = Nx.Quest
@@ -4449,130 +4371,6 @@ function CarboniteQuest:OnChat_msg_combat_faction_change (event, arg1)
 	end
 
 	self.CaptureQEndTime = nil
-end
-
--------------------------------------------------------------------------------
--- Capture a quest
--- (current index, objective # (nil for start, -1 end)
--------------------------------------------------------------------------------
-
-function Nx.Quest:Capture (curi, objNum)
-
-	local Nx = Nx
-	local opts = self.GOpts
-
-	if not Nx.db.profile.General.CaptureEnable then
-		return
-	end
-
-	local cur = self.CurQ[curi]
-	local id = cur.QId
-
-	if Nx.db.profile.Debug.DebugMap and (not objNum or objNum < 0) then	-- Start or end
-		Nx.prt ("Quest Capture %s", id or "nil")
-	end
-
-	if not id then
-		return
-	end
-
-	local cap = NXQuest.Gather
-
-	local facI = UnitFactionGroup ("player") == "Horde" and 1 or 0
-	local quests = Nx:CaptureFind (cap, "Q")
-	local saveId = id * 2 + facI
-
-	local len = 0
-
-	for id, str in pairs (quests) do
-		len = len + 4 + #str + 1
-	end
-
-	if len > 110 * 1024 then
-		return
-	end
-
---	Nx.prt ("Cap len %s", len)
-
---[[
-	if not objNum or objNum < 0 then
-		Nx.prt (L["Capture %s %s %s %.2f,%.2f"], self.AcceptGiver, self.AcceptAId or 0, self.AcceptDLvl, self.AcceptX, self.AcceptY)
-	else
-		local map = self.Map
-		Nx.prt (L["Capture #%s %s %.2f,%.2f"], objNum, map.RMapId, map.PlyrRZX, map.PlyrRZY)
-	end
---]]
-
---	local ids = self:CaptureGet (quests, id)
---	ids["I"] = format ("%d^%s^%s", cur.RealLevel, cur.Title, cur.Header)
-
-	local q = quests[saveId]
-
-	if not q then
-		q = strrep ("~", cur.LBCnt + 1)
-	end
-
-	local qdata = { Nx.Split ("~", q) }
-
-	if not objNum then	-- Starter
-
---		local flags = bit.bor (tonumber (strsub (qdata[1], 1, 1), 16) or 0, facMask)
-		local plLvl = UnitLevel ("player")
-
-		-- 0 is reserved
-		local s = Nx:PackXY (self.AcceptX, self.AcceptY)
---		qdata[1] = format ("0%s^%02x%02x%s", self.AcceptGiver, plLvl, self.AcceptAId, s)
-		qdata[1] = format ("0%s^%03x%x%s", self.AcceptGiver, self.AcceptAId, self.AcceptDLvl, s)
-
---		Nx.prt ("Capture start %s", qdata[1])
-
-	elseif objNum < 0 then	-- Ender
-
-		local s = Nx:PackXY (self.AcceptX, self.AcceptY)
-		qdata[2] = format ("%s^%03x%x%s", self.AcceptGiver, self.AcceptAId, self.AcceptDLvl, s)
-
-		self.CaptureQEndTime = GetTime()
-		self.CaptureQEndId = saveId
-
---		Nx.prt ("Capture end %s", qdata[2])
-
-	else
-
-		local map = self.Map:GetMap(1)
-		local nxzone = map.UpdateMapID
-		if nxzone then
-
-			local index = objNum + 2
-			local obj = qdata[index]
-
-			if not obj then
---				Nx.prt (L["Capture err %s, %s"], cur.Title, objNum)	-- Debug message
-				return
-			end
-
-			if #obj >= 3 then
-				local z = tonumber (strsub (obj, 1, 3), 16)
-				if nxzone ~= z then
-					return
-				end
-			else
-				obj = format ("%03x", nxzone)
-			end
-
-			local cnt = (#obj - 3) / 6
-			if cnt >= 15 then
-				return
-			end
-
-			qdata[index] = obj .. Nx:PackXY (map.PlyrRZX, map.PlyrRZY)
-
---			Nx.prt ("Capture%d #%d %s", objNum, cnt, qdata[index])
-		end
-	end
-
-	quests[saveId] = table.concat (qdata, "~")	-- concat is not global!!!
-
---	Nx.prt ("CapStr %s", quests[saveId])
 end
 
 function Nx.Quest:CaptureGetCount()
@@ -6545,7 +6343,6 @@ function CarboniteQuest:OnQuestUpdate (event, ...)
 		Nx.Quest.List:Refresh(event)
 	elseif event == "QUEST_DETAIL" then		-- Happens when auto accept quest is given
 		if QuestGetAutoAccept() and QuestIsFromAreaTrigger() then
-			Quest:RecordQuestAcceptOrFinish()
 			local auto = Nx.qdb.profile.Quest.AutoAccept
 			if IsShiftKeyDown() and IsControlKeyDown() then
 				auto = not auto
@@ -6617,7 +6414,6 @@ function Nx.Quest.List:LogUpdate()
 			if Nx.qdb.profile.QuestWatch.AddNew and not Quest.DailyPVPIds[cur.QId] then
 				Quest.Watch:Add (curi,true)
 			end
-			Quest:Capture (curi)
 		end
 --		Nx.prt ("OnQuestUpdate Watch %d %d", qn, i)
 	end
