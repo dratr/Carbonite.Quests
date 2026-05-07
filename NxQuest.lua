@@ -6512,7 +6512,7 @@ function Nx.Quest.List:Update()
 					lvlStr = format ("|cffd0d0d0%2d", level)
 				end
 
-				local color = Quest:GetDifficultyColor (level)
+				local color = GetQuestDifficultyColor (level)
 				color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
 				local nameStr = format ("%s %s%s", lvlStr, color, title)
@@ -6762,7 +6762,7 @@ function Nx.Quest.List:Update()
 						haveStr = "|cffe0e0e0+ "
 					end
 
-					local color = Quest:GetDifficultyColor (lvl)
+					local color = GetQuestDifficultyColor (lvl)
 					color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
 					t.Desc = format ("%s %s%s%s", lvlStr, haveStr, color, title)
@@ -6968,7 +6968,7 @@ function Nx.Quest.List:Update()
 						haveStr = "|cffe0e0e0+ "
 					end
 
-					local color = Quest:GetDifficultyColor (lvl)
+					local color = GetQuestDifficultyColor (lvl)
 					color = format ("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255)
 
 					local str = format ("%s %s%s%s", lvlStr, haveStr, color, title)
@@ -7176,58 +7176,6 @@ function Nx.Quest.List:CheckShow (mapId, index)
 
 		index = index + 1
 	end
-end
-
--------------------------------------------------------------------------------
--- CLONED BLIZZARD TEXTURE FUNCTIONS
--------------------------------------------------------------------------------
-
-local function ApplyTextureToPOI(texture, width, height)
-	texture:SetTexCoord(0, 1, 0, 1);
-	texture:ClearAllPoints();
-	texture:SetPoint("CENTER", texture:GetParent());
-	texture:SetSize(width or 32, height or 32);
-end
-
-local function ApplyAtlasTexturesToPOI(button, normal, pushed, highlight, width, height)
-	button:SetSize(20, 20);
-	button:SetNormalAtlas(normal);
-	ApplyTextureToPOI(button:GetNormalTexture(), width, height);
-
-	button:SetPushedAtlas(pushed);
-	ApplyTextureToPOI(button:GetPushedTexture(), width, height);
-
-	button:SetHighlightAtlas(highlight);
-	ApplyTextureToPOI(button:GetHighlightTexture(), width, height);
-
-	if button.SelectedGlow then
-		button.SelectedGlow:SetAtlas(pushed);
-		ApplyTextureToPOI(button.SelectedGlow, width, height);
-	end
-end
-
-local function ApplyStandardTexturesToPOI(button, selected)
-	button:SetSize(20, 20);
-	button:SetNormalTexture("Interface/WorldMap/UI-QuestPoi-NumberIcons");
-	ApplyTextureToPOI(button:GetNormalTexture());
-	if selected then
-		button:GetNormalTexture():SetTexCoord(0.500, 0.625, 0.375, 0.5);
-	else
-		button:GetNormalTexture():SetTexCoord(0.875, 1, 0.375, 0.5);
-	end
-
-
-	button:SetPushedTexture("Interface/WorldMap/UI-QuestPoi-NumberIcons");
-	ApplyTextureToPOI(button:GetPushedTexture());
-	if selected then
-		button:GetPushedTexture():SetTexCoord(0.375, 0.500, 0.375, 0.5);
-	else
-		button:GetPushedTexture():SetTexCoord(0.750, 0.875, 0.375, 0.5);
-	end
-
-	button:SetHighlightTexture("Interface/WorldMap/UI-QuestPoi-NumberIcons");
-	ApplyTextureToPOI(button:GetHighlightTexture());
-	button:GetHighlightTexture():SetTexCoord(0.625, 0.750, 0.875, 1);
 end
 
 -------------------------------------------------------------------------------
@@ -7667,12 +7615,14 @@ function Nx.Quest:UpdateIcons (map)
 
 						f.texture:SetTexture ("Interface\\Minimap\\ObjectIconsAtlas")
 						map:ClipFrameZ (f, x, y, 16, 16, 0)
-						if taskInfo[i].isDaily then
-							f.NxTip = "|cffffd100Daily:\n" .. title .. objTxt
-							f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4713))
-						else
-							f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
-							f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4734))
+						if title then
+							if taskInfo[i].isDaily then
+								f.NxTip = "|cffffd100Daily:\n" .. title .. objTxt
+								f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4713))
+							else
+								f.NxTip = "|cffffd100Bonus Task:\n" .. title:gsub("Bonus Objective: ", "") .. objTxt
+								f.texture:SetTexCoord (C_Minimap.GetObjectIconTextureCoords(4734))
+							end
 						end
 					end
 				end
