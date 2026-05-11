@@ -197,16 +197,11 @@ local defaults = {
 }
 
 local GlobalAddonName = ...
-local inspectScantip = CreateFrame("GameTooltip", GlobalAddonName.."WQInspectScanningTooltip", nil, "GameTooltipTemplate")
-inspectScantip:SetOwner(UIParent, "ANCHOR_NONE")
 
 local WQTable = {}
-local ITEM_LEVEL = (ITEM_LEVEL or "NO DATA FOR ITEM_LEVEL"):gsub("%%d","(%%d+%+*)")
 
 local questoptions
 local worldquestdb = {}
-local worldquesttip = CreateFrame("GameTooltip", "WQListTip", nil, "GameTooltipTemplate")
-worldquesttip:SetOwner(UIParent, "ANCHOR_NONE")
 
 local function QuestOptions ()
 	if not questoptions then
@@ -3809,7 +3804,6 @@ function Nx.Quest:RecordQuestsLog()
 	end
 
 --	local map = Nx.Map:GetMap (1)
-	self.Map.Guide:UpdateMapIcons()
 end
 
 -------------------------------------------------------------------------------
@@ -8100,8 +8094,6 @@ function Nx.Quest.Watch:Open()
 
 	local function func (self, but)
 		Nx.db.char.Map.ShowQuestGivers = but:GetState()
-		local map = Nx.Map:GetMap (1)
-		map.Guide:UpdateGatherFolders()
 	end
 	self.ButQGivers = Nx.Button:Create (self.ButMenu.Frm, "QuestWatchGivers", nil, nil, 68, 0, "CENTER", 1, 1, func, self)
 	self.ButQGivers:SetState (Nx.db.char.Map.ShowQuestGivers)
@@ -8198,7 +8190,6 @@ function Nx.Quest.Watch:Open()
 	item:SetSlider (qopts, -200, 200, 1, "NXWPriLevel")
 
 	local function func()
-		Nx.Map:GetMap (1).Guide:UpdateGatherFolders()
 	end
 
 	local item = menu:AddItem (0, L["Quest Giver Lower Levels To Show"], func, self)
@@ -9462,9 +9453,6 @@ function Nx.Quest:CreateGiverIconMenu (mainMenu, frm)
 
 			self:UpdateGiverIconMenu()
 			self.GiverIconMenuCompleted:Update()
-
-			local map = Nx.Map:GetMap (1)
-			map.Guide:UpdateMapIcons()
 		end
 
 		self.GiverIconMenuICompletedT[n] = completedMenu:AddItem (0, "?", func, self)
@@ -9787,8 +9775,6 @@ function Nx.Quest:TrackOnMap (qId, qObj, useEnd, target, skipSame)
 
 					self.Map:SetTarget ("Q", x1, y1, x2, y2, false, qId * 100 + qObj, name, false, mId)
 --					Nx.prt ("TrackOnMap %s %s %s", qId, qObj, name)
-
-					self.Map.Guide:ClearAll()
 				end
 
 				self.Map:GotoPlayer()
@@ -10590,7 +10576,7 @@ end
 -------------------------------------------------------------------------------
 
 function Nx.Quest.OnParty_members_changed()
-	if not Nx.Quest.Initialized then
+	if not Nx.Quest.Initialized or InCombatLockdown() then
 		return
 	end
 	local self = Nx.Quest
@@ -10989,101 +10975,6 @@ function Nx.Quest.WQList:WinUpdateFade (fade)
 	Nx.Quest.WQList.ButMenu.Frm:SetAlpha (fade)
 end
 
-function Nx.Quest.WQList:GenWQTip(questId)	
-	if worldquestdb[questId].tip and worldquestdb[questId].tip ~= false then		
-		return worldquestdb[questId].tip
-	end
-	worldquesttip:ClearLines()
-	local title, factionID, capped = C_TaskQuest.GetQuestInfoByQuestID(questId)
-	local tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex, displayTimeLeft = GetQuestTagInfo(questId)
-	rarity = rarity or Enum.WorldQuestQuality.Common
-	local color = WORLD_QUEST_QUALITY_COLORS[rarity]
-	local style = TOOLTIP_QUEST_REWARDS_STYLE_DEFAULT
-	local tipdone = false
-	
-	worldquesttip:SetText(title, color.r, color.g, color.b)	
-	QuestUtils_AddQuestTypeToTooltip(worldquesttip, questId, NORMAL_FONT_COLOR)
-	if factionID then
-		local factionName = GetFactionInfoByID(factionID)
-		if factionName then
-			if capped then
-				worldquesttip:AddLine(factionName, GRAY_FONT_COLOR:GetRGB())
-			else
-				worldquesttip:AddLine(factionName)
-			end
-		end
-	end
-
-	if displayTimeLeft then
-		WorldMap_AddQuestTimeToTooltip(questId)
-	end
-
-	for objectiveIndex = 1, worldquestdb[questId].numobjectives do
-		local objectiveText, objectiveType, finished = GetQuestObjectiveInfo(questId, objectiveIndex, false)
-		if objectiveText and #objectiveText > 0 then
-			local color = finished and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR
-			worldquesttip:AddLine(QUEST_DASH .. objectiveText, color.r, color.g, color.b, true)
-		end
-	end
-
-	local percent = C_TaskQuest.GetQuestProgressBarInfo(questId)
-	if percent then				
-		worldquesttip:AddLine(L["Percent Complete"] .. ":  " .. percent .. "%")
-	end
-
-	if (GetQuestLogRewardXP(questId) > 0 or GetNumQuestLogRewardCurrencies(questId) > 0 or GetNumQuestLogRewards(questId) > 0 or GetQuestLogRewardMoney(questId) > 0 or GetQuestLogRewardArtifactXP(questId) > 0 or GetQuestLogRewardHonor(questId)) then
-		GameTooltip_AddBlankLinesToTooltip(worldquesttip, style.prefixBlankLineCount)
-		worldquesttip:AddLine(style.headerText, style.headerColor.r, style.headerColor.g, style.headerColor.b, style.wrapHeaderText)
-		GameTooltip_AddBlankLinesToTooltip(worldquesttip, style.postHeaderBlankLineCount)
-
-		local xp = GetQuestLogRewardXP(questId)				
-		if ( xp > 0 ) then
-			worldquesttip:AddLine(BONUS_OBJECTIVE_EXPERIENCE_FORMAT:format(xp), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
-			tipdone = true			
-		end
-		local artifactXP = GetQuestLogRewardArtifactXP(questId)
-		if ( artifactXP > 0 ) then
-			worldquesttip:AddLine(BONUS_OBJECTIVE_ARTIFACT_XP_FORMAT:format(artifactXP), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
-			tipdone = true			
-		end
-		local numAddedQuestCurrencies = QuestUtils_AddQuestCurrencyRewardsToTooltip(questId, worldquesttip)
-		if ( numAddedQuestCurrencies > 0 ) then
-			tipdone = true			
-		end		
-		local honorAmount = GetQuestLogRewardHonor(questId)
-		if ( honorAmount > 0 ) then
-			worldquesttip:AddLine(BONUS_OBJECTIVE_REWARD_WITH_COUNT_FORMAT:format("Interface\\ICONS\\Achievement_LegionPVPTier4", honorAmount, HONOR), HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)			
-			tipdone = true
-			worldquestdb[questId].PVP = true
-		end		
-		local money = GetQuestLogRewardMoney(questId)
-		if ( money > 0 ) then
-			worldquesttip:AddLine(Nx.Util_GetMoneyStr (money))
-			tipdone = true			
-		end
-		local numQuestRewards = GetNumQuestLogRewards(questId)
-		if numQuestRewards > 0 then			
-			local name,icon,numItems,quality,_,itemID = GetQuestLogRewardInfo(1,questId)
-			local color = BAG_ITEM_QUALITY_COLORS[quality]
-			if name then
-				worldquesttip:AddLine("|T"..icon..":0|t "..(numItems and numItems > 1 and numItems.."x " or "")..name, color.r, color.g, color.b)
-				tipdone = true
-			end
-		end
-	end
-	if not tipdone then
-		return false
-	end
-	local tip = ""
-	for i=1, worldquesttip:NumLines() do
-		local line = _G["WQListTipTextLeft" .. i]:GetText()
-		local r, g, b = _G["WQListTipTextLeft" .. i]:GetTextColor()		
-		tip = tip .. format("|cff%02x%02x%02x%s|r\n", r * 255, g * 255, b * 255, line)		
-	end
-	
-	return tip
-end
-
 function Nx.Quest.WQList:GetWQReward(questId)
 	local reward = ""
 	
@@ -11093,21 +10984,10 @@ function Nx.Quest.WQList:GetWQReward(questId)
 	end
 	local items = GetNumQuestLogRewards(questId)
 	if items > 0 then
-		worldquesttip:ClearLines()
 		local name,icon,qty,quality,_,itemID = GetQuestLogRewardInfo(1,questId)
-		local foundartifact = false
-		worldquesttip:SetQuestLogItem("reward", 1, questId)
-		local link = select(2,worldquesttip:GetItem())		
-		for i=2, worldquesttip:NumLines() do
-			local line = _G["WQListTipTextLeft" .. i]:GetText()
-			if line and ( line:find(ARTIFACT_POWER.."|r$") or line:find("Artifact Power|r$") ) then
-				return 10		
-			end		
-			if line and line:find(ITEM_LEVEL) then				
-				return 40
-			end
+		if name and itemID and itemLevel then
+		    return 40
 		end
-		worldquesttip:ClearLines()
 	end
 	local gold = GetQuestLogRewardMoney(questId)
 	if gold > 0 then
@@ -11134,40 +11014,6 @@ function Nx.Quest.WQList:OnListEvent (eventName, sel, val2, click)
 end
 
 function Nx.Quest.WQList:UpdateDB(event, ...)
---	if not Nx.Quest.WQList.Win.Frm:IsVisible() then
---		return
---	end	
-	--[[local legionzones = {1014, 1015, 1017, 1018, 1021, 1024, 1033, 1096, 1135, 1170, 1171}
-	if not WorldMapFrame:IsShown() then
-		WorldMapFrame:SetMapID(1007)
-	end		
-	for i=1,#legionzones do
-		local zonequests = {}
-		if legionzones[i] == 1014 then			
-			WorldMapFrame:SetMapID(1014)			
-			zonequests = C_TaskQuest.GetQuestsForPlayerByMapID(legionzones[i])			
-		else
-			zonequests = C_TaskQuest.GetQuestsForPlayerByMapID(legionzones[i], legionzones[i])
-		end
-		for j, quest in pairs(zonequests) do			
-			local questId = quest.questId			
-			C_TaskQuest.RequestPreloadRewardData (questId)
-			if QuestUtils_IsQuestWorldQuest (questId) then
-				if not worldquestdb[questId] then
-					worldquestdb[questId] = {}					
-				end
-				worldquestdb[questId].x = quest.x * 100				
-				worldquestdb[questId].y = quest.y * 100				
-				worldquestdb[questId].mapid = legionzones[i]
-				worldquestdb[questId].questid = questId
-				worldquestdb[questId].numobjectives = quest.numObjectives
-				local tip = Nx.Quest.WQList:GenWQTip(questId)
-				if not worldquestdb[questId].tip and tip then						
-					worldquestdb[questId].tip = tip
-				end
-			end
-		end
-	end]]--
 	if not WorldMapFrame:IsShown() then
 		WorldMapFrame:SetMapID(Nx.Map.UpdateMapID)
 	end	
